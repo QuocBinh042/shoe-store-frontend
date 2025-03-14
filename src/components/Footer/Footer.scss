@@ -1,0 +1,141 @@
+.footer {
+  background-color: #0b2540;
+  color: white;
+  padding: 40px 0;
+
+  &__container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 15px;
+  }
+
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin-bottom: 20px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__newsletter {
+    flex: 1 1 45%;
+    text-align: left;
+
+    &-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: white;
+    }
+
+    &-text {
+      font-size: 0.85rem;
+      color: #8ba7c3;
+      margin-top: -10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  }
+
+  &__form {
+    margin-top: 20px;
+    display: flex;
+
+    &-input {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 3px;
+      font-size: 0.9rem;
+      margin-right: 10px;
+    }
+
+    &-button {
+      background-color: #84bd00;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 3px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+
+      &:hover {
+        background-color: #5a9a35;
+      }
+    }
+  }
+
+  &__contact,
+  &__links {
+    flex: 1 1 20%;
+    text-align: left;
+
+    &__title {
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #84bd00;
+      margin-bottom: 15px;
+    }
+
+    a {
+      display: block;
+      color: white;
+      text-decoration: none;
+      font-size: 0.9rem;
+      margin-bottom: 5px;
+
+      &:hover {
+        color: #84bd00;
+      }
+    }
+
+    &__highlight {
+      color: #84bd00;
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    &__address {
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+  }
+
+  &__social-icons {
+    margin-top: 15px;
+
+    a {
+      color: white;
+      font-size: 1.2rem;
+      margin-right: 15px;
+      transition: color 0.3s;
+
+      &:hover {
+        color: #84bd00;
+      }
+    }
+  }
+
+  &__divider {
+    border-color: #3a4a63;
+  }
+
+  &__bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    &__copyright {
+      font-size: 0.85rem;
+      color: #8ba7c3;
+    }
+
+    &__payment-methods img {
+      width: 40px;
+      margin: 0 5px;
+    }
+  }
+}

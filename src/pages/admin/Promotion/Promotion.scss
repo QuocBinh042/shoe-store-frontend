@@ -1,0 +1,87 @@
+.promotion-dashboard {
+  padding: 8px;
+  
+  .stats-row {
+    margin-bottom: 16px;
+  }
+  
+  .stat-card {
+    transition: all 0.3s;
+    
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+  }
+  
+  .content-card {
+    .ant-card-head {
+      border-bottom: 1px solid #f0f0f0;
+      padding: 16px 24px;
+    }
+    
+    .ant-tabs-nav {
+      margin-bottom: 24px;
+    }
+  }
+  
+  .ant-table-tbody > tr:hover > td {
+    background-color: #f5f5f5;
+  }
+}
+
+.promotion-form {
+  .upload-label {
+    display: block;
+    margin-bottom: 8px;
+  }
+  
+  .form-section {
+    margin-bottom: 24px;
+  }
+  
+  .discount-input {
+    display: flex;
+    align-items: center;
+    
+    .ant-input-number {
+      flex: 1;
+    }
+  }
+}
+
+.promotion-detail {
+  .detail-card {
+    margin-bottom: 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.09);
+    
+    .ant-card-head {
+      border-bottom: 1px solid #f0f0f0;
+    }
+  }
+  
+  .stat-card {
+    text-align: center;
+    transition: all 0.3s;
+    
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+  }
+  
+  .usage-chart {
+    height: 300px;
+    margin-top: 16px;
+  }
+  
+  .order-item {
+    padding: 12px 0;
+    border-bottom: 1px solid #f0f0f0;
+    
+    &:last-child {
+      border-bottom: none;
+    }
+  }
+} 

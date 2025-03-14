@@ -1,0 +1,17 @@
+/* Hover state */
+.ant-menu-light .ant-menu-item:hover,
+.ant-menu-light .ant-menu-submenu-title:hover {
+  background-color: #f5f5f5; /* Lighter gray on hover */
+}
+
+/* Selected (active) state */
+.ant-menu-light .ant-menu-item-selected {
+  background-color: #e6f7ff; /* Light blue background */
+  color: #1890ff; /* Blue text */
+}
+
+/* Remove border from nested submenu items if you like */
+.ant-menu-submenu-popup.ant-menu-light {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+

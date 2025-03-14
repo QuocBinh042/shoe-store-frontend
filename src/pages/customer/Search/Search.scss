@@ -1,0 +1,105 @@
+.custom-collapse {
+  border-radius: 0px;
+  border: 1px solid white;
+  width: "100%";
+  background: white;
+}
+
+.filters {
+  .ant-collapse-header-text {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  &__panel {
+    .ant-collapse-header {
+      font-size: 18px;
+      font-weight: bold;
+      color: black;
+      padding: 10px 16px;
+
+      &:hover {
+        background-color: #e6f7ff;
+      }
+    }
+  }
+
+  &__categories,
+  &__prices,
+  &__brands,
+  &__colors,
+  &__sizes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    &-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      &-checkbox {
+        margin-right: auto;
+      }
+
+      &-count {
+        color: #888;
+      }
+    }
+  }
+
+  &__colors-item {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    margin-right: 10px;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    transition: all 0.3s;
+
+    &.selected {
+      border: 3px solid #007bff;
+      transform: scale(1.1);
+    }
+  }
+
+  &__sizes-item {
+    width: 40px;
+    height: 40px;
+    border-radius: 5px;
+    border: 2px solid #ccc;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  &__sizes-item.selected {
+    border-color: #1890ff;
+    background-color: #e6f7ff;
+  }
+
+  &__sizes-item:hover {
+    border-color: #40a9ff;
+  }
+}
+
+.sider {
+  background: white;
+  max-height: 700px;
+  overflow-y: auto;
+  position: sticky;
+  top: 0;
+  margin-right: 20px;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background-color: #888;
+    border-radius: 4px;
+  }
+}

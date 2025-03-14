@@ -1,0 +1,45 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  width: 100%;
+  padding: 0;
+  &__menu {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 80px;
+    background-color: "#001529";
+    &--item {
+      flex: 1;
+      justify-content: flex-end;
+    }
+  }
+  &__logo {
+    width: 50px;
+    border-radius: 50%;
+  }
+}
+
+.breadcrumb-container {
+  background-color: rgb(217, 215, 215);
+  padding: 10px 20px;
+  
+  &.hidden {
+    display: none; 
+  }
+  .ant-breadcrumb {
+    font-size: 16px;
+    font-weight: 500;
+    padding:  0 100px
+  }
+
+  .ant-breadcrumb-link a {
+    color: #1890ff;
+  }
+
+  .ant-breadcrumb-separator {
+    margin: 0 8px;
+  }
+}
+

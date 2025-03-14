@@ -1,0 +1,138 @@
+.product-details-container {
+  padding: 20px 100px;
+  background: #f5f5f5;
+  .product-details {
+    .product-image {
+      background: white;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      .thumbnail-images {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+
+        .thumbnail {
+          width: 80px;
+          height: 80px;
+          border-radius: 5px;
+          cursor: pointer;
+          border: 2px solid transparent;
+
+          &.active {
+            border-color: #ffc107;
+          }
+        }
+      }
+    }
+
+    .product-info {
+      background: white;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      margin-left: 10px;
+      .breadcrumb {
+        font-size: 0.9rem;
+        color: #888;
+      }
+
+      .product-name {
+        font-size: 2rem;
+        font-weight: bold;
+        margin: -10px 0px 10px;
+      }
+
+      .product-pricing {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 10px;
+        .original-price {
+          text-decoration: line-through;
+          color: #888;
+          margin-top: 13px;
+        }
+
+        .discounted-price {
+          font-size: 1.5rem;
+          font-weight: 700;
+          font-style: italic;
+          color: red;
+        }
+      }
+
+      .product-rating {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 15px 0px 10px;
+
+        .reviews {
+          font-size: 0.9rem;
+          color: #888;
+        }
+      }
+
+      .options {
+        .box {
+          padding: 10px 15px;
+          border: 1px solid #ddd;
+          border-radius: 5px;
+          cursor: pointer;
+
+          &.active {
+            background-color: #f1f1f1;
+            border-color: #333;
+          }
+        }
+      }
+    }
+  }
+}
+.btn-buy-now {
+  background-color: #000;
+  color: #fff;
+  border: none;
+  width: 100%;
+  padding: 20px;
+}
+.btn-add-to-cart {
+  background-color: #ffc107;
+  color: #fff;
+  border: none;
+  width: 100%;
+  padding: 20px;
+}
+.order-summary {
+  flex: 1;
+  background: white;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-left: 10px;
+  position: sticky;
+  top: 20px;
+
+  h3 {
+    font-size: 1.2rem;
+    margin-bottom: 1rem;
+  }
+
+  .order-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .order-total {
+    display: flex;
+    justify-content: space-between;
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin: 1rem 0;
+  }
+
+  .order-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
