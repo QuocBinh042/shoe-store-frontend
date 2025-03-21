@@ -51,11 +51,13 @@ const ProductGrid = ({ products, totalProducts, currentPage, onPageChange }) => 
                     hoverable
                     onClick={() => handleAddCart(product.productID)}
                   >
-                    {product.rating > 0 ? (
-                      <Rate disabled allowHalf value={product.rating} style={{ marginBottom: 10 }} />
-                    ) : (
-                      <p style={{ color: "#888", fontSize: "14px", marginBottom: "10px" }}>No reviews yet</p>
-                    )}
+                    <div style={{ minHeight: "30px", display: "flex", alignItems: "center", marginBottom: 10  }}>
+                      {product.rating > 0 ? (
+                        <Rate disabled allowHalf value={product.rating} style={{ marginBottom: 0 }} />
+                      ) : (
+                        <p style={{ color: "#888", fontSize: "14px", margin: 0 }}>No reviews yet</p>
+                      )}
+                    </div>
 
                     <Card.Meta
                       title={product.productName}

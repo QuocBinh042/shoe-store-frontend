@@ -19,7 +19,7 @@ const Search = () => {
     sizes: [],
     priceRange: null,
     sortBy: null,
-    keyword: "", // Thêm từ khóa tìm kiếm vào filters
+    keyword: "",
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -115,15 +115,15 @@ const Search = () => {
   
     try {
       const { products, total } = await fetchFilteredProducts(params, page);
-      console.log("Filters:", params);
-  
       if (Array.isArray(products)) {
         const updatedProducts = await Promise.all(
           products.map(async (product) => {
             const discountPrice = await getDiscountByProduct(product.productID);
+            const rating = await getRating(product.productID);
             return {
               ...product,
-              discountPrice: discountPrice && discountPrice < product.price ? discountPrice : null
+              discountPrice: discountPrice && discountPrice < product.price ? discountPrice : null,
+              rating
             };
           })
         );
