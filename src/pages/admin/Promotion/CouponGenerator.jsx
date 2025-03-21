@@ -327,11 +327,15 @@ const CouponGenerator = () => {
                 rules={[{ required: true, message: 'Please input the discount value' }]}
               >
                 <InputNumber
-                  min={0}
-                  max={form.getFieldValue('discountType') === 'percentage' ? 100 : 1000}
-                  formatter={value => form.getFieldValue('discountType') === 'percentage' ? `${value}%` : `$ ${value}`}
-                  parser={value => value.replace(/\$\s?|%/g, '')}
-                  style={{ width: '100%' }}
+                    min={0}
+                    max={form.getFieldValue('discountType') === 'percentage' ? 100 : 1000}
+                    formatter={value => 
+                        form.getFieldValue('discountType') === 'percentage' 
+                            ? `${value}%` 
+                            : `$ ${value}`
+                    }
+                    parser={value => value.replace(/\$\s?|%/g, '')}
+                    style={{ width: '100%' }}
                 />
               </Form.Item>
               
@@ -415,11 +419,7 @@ const CouponGenerator = () => {
               columns={columns}
               dataSource={coupons}
               rowKey="id"
-              pagination={{ 
-                pageSize: 10,
-                showSizeChanger: true,
-                showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
-              }}
+              pagination={{ pageSize: 10 }}
               scroll={{ x: 800 }}
               locale={{ emptyText: 'No coupons generated yet' }}
             />
@@ -431,12 +431,11 @@ const CouponGenerator = () => {
       <Modal
         title="Coupon Preview"
         open={previewVisible}
+        onOk={saveCoupons}
         onCancel={() => setPreviewVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setPreviewVisible(false)}>
-            Close
-          </Button>,
-        ]}
+        width={800}
+        okText="Save Coupons"
+        cancelText="Cancel"
       >
         <Alert
           message="Preview Generated Coupons"
@@ -448,11 +447,9 @@ const CouponGenerator = () => {
         <Table
           columns={columns.filter(col => col.key !== 'actions')}
           dataSource={previewCoupons}
-          pagination={{ 
-            pageSize: 5,
-            showSizeChanger: true,
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
-          }}
+          rowKey="id"
+          pagination={false}
+          scroll={{ y: 300 }}
         />
       </Modal>
     </div>
