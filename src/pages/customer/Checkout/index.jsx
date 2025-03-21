@@ -125,43 +125,43 @@ const Checkout = () => {
 
     const order = {
       orderDate: new Date().toISOString().split("T")[0],
-      status: "Processing",
+      status: "PENDING",
       total: totalCost,
       feeShip: shippingCost,
       shippingAddress: `${selectedAddress.street}, ${selectedAddress.ward}, ${selectedAddress.district}, ${selectedAddress.city}`,
       user: { userID: user.userID },
       code: orderCode,
-      typePayment: paymentMethod === "VNPay" ? "VNPay" : "Cash on Delivery",
+      paymentMethod: paymentMethod === "VNPay" ? "VNPAY" : "CASH",
       ...(selectedVoucher && { voucher: { voucherID: selectedVoucher.voucherID } }),
       discount: discount
     };
 
     try {
-      // const response = await addOrder(order);
-      // if (response && response.data.orderID) {
-      //   const orderID = response.data.orderID;
+      const response = await addOrder(order);
+      if (response && response.data.orderID) {
+        const orderID = response.data.orderID;
 
-      //   // Add order details
-      //   await Promise.all(
-      //     productDetails.map(async (product) => {
-      //       const productDetail = await fetchProductDetailById(product.detail.productDetailID)
-      //       const orderDetail = {
-      //         quantity: product.quantity,
-      //         price: product.price,
-      //         productDetail: productDetail,
-      //         order: { orderID },
-      //       };
-      //       await addOrderDetails(orderDetail);
-      //     })
-      //   );
+        // Add order details
+        await Promise.all(
+          productDetails.map(async (product) => {
+            const productDetail = await fetchProductDetailById(product.detail.productDetailID)
+            const orderDetail = {
+              quantity: product.quantity,
+              price: product.price,
+              productDetail: productDetail,
+              order: { orderID },
+            };
+            await addOrderDetails(orderDetail);
+          })
+        );
 
-      //   // Add payment
-      //   const payment = {
-      //     paymentDate: new Date().toISOString(),
-      //     status: "Pending",
-      //     order: { orderID },
-      //   };
-      //   await addPayment(payment);
+        // Add payment
+        const payment = {
+          paymentDate: new Date().toISOString(),
+          status: "PENDING",
+          order: { orderID },
+        };
+        await addPayment(payment);
       let vnPayUrl = null;
       if (paymentMethod === "VNPay") {
         const vnPayResponse = await getVnPayUrl(totalCost, orderCode);
@@ -170,7 +170,7 @@ const Checkout = () => {
       // Set modal data
       setModalData({
         transactionDate: new Date().toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }),
-        paymentMethod: paymentMethod === "VNPay" ? "VNPay" : "Cash on Delivery",
+        paymentMethod: paymentMethod === "VNPay" ? "PENDING" : "CASH",
         shippingMethod: shippingMethod === "Express" ? "Express delivery (1-3 business days)" : "Normal delivery (3-5 business days)",
         products: productDetails,
         subtotal: productDetails.reduce((total, product) => total + product.quantity * product.price, 0),
@@ -179,7 +179,7 @@ const Checkout = () => {
         vnPayUrl,
       });
       setIsModalVisible(true)
-      // }
+      }
     } catch (error) {
       console.error("Error creating order, order details, or payment:", error);
       Modal.error({
@@ -189,7 +189,7 @@ const Checkout = () => {
   };
   const handleCloseSuccesDrawe = () => {
     setIsModalVisible(false);
-    navigate("/"); // Chuyển hướng về trang chủ
+    navigate("/"); 
   };
   const handleSelectAddress = (address) => {
     setSelectedAddress(address);

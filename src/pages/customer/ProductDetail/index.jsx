@@ -336,7 +336,7 @@ const ProductDetails = () => {
       </Row>
       <Review productID={productID} />
 
-      <RelatedProducts />
+      <RelatedProducts productId={productID} />
     </div>
   );
 };

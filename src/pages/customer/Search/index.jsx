@@ -7,7 +7,7 @@ import { Header } from 'antd/es/layout/layout';
 import ResultsHeader from './ResultHeader';
 import { fetchAllProducts, fetchFilteredProducts } from '../../../services/searchService';
 import { getDiscountByProduct } from '../../../services/promotionService';
-
+import { getRating } from '../../../services/productService';
 const { Sider, Content } = Layout;
 
 const Search = () => {
@@ -31,9 +31,11 @@ const Search = () => {
       const updatedProducts = await Promise.all(
         response.data.items.map(async (product) => {
           const discountPrice = await getDiscountByProduct(product.productID);
+          const rating = await getRating(product.productID);
           return {
             ...product,
             discountPrice: discountPrice && discountPrice < product.price ? discountPrice : null,
+            rating
           };
         })
       );

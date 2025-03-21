@@ -18,10 +18,28 @@ const UserDashboard = () => {
     const [form] = Form.useForm();
     const user = useSelector((state) => state.account.user);
     useEffect(() => {
+        const fetchData = async (userId) => {
+            try {
+                await fetchUserInfo(userId);
+                await fetchQuantityOrder(userId);
+                await fetchtotalAmount(userId);
+                await fetchOrders(userId);
+            } catch (error) {
+                console.error("Error fetching data: ", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        const fetchOrders = async (userId) => {
+            const orders = await fetchOrderByUser(userId);
+            processMonthlyData(orders);
+            setFilteredOrders(orders.filter(order => order.status === "SHIPPED"));
+        };
         if (user?.userID) {
             fetchData(user.userID);
         }
     }, [user]);
+    
 
     const fetchQuantityOrder = async (userId) => {
         const count = await countOrderByUser(userId);
@@ -33,31 +51,13 @@ const UserDashboard = () => {
         setAmount(amount);
     };
 
-    const fetchOrders = async (userId) => {
-        const orders = await fetchOrderByUser(userId);
-        processMonthlyData(orders);
-        setFilteredOrders(orders.filter(order => order.status !== "Completed"));
-    };
+    
 
     const fetchUserInfo = async (userId) => {
         const userInfo = await fetchUserInfoById(userId);
         setUseruserInfo(userInfo.data);
     };
 
-    const fetchData = async (userId) => {
-
-        try {
-            await fetchUserInfo(userId);
-            await fetchQuantityOrder(userId);
-            await fetchtotalAmount(userId);
-            await fetchOrders(userId);
-        } catch (error) {
-            console.error("Error fetching data: ", error);
-        } finally {
-            setLoading(false);
-        }
-
-    };
     const processMonthlyData = (orders) => {
         const monthlyData = Array.from({ length: 12 }, (_, index) => ({
             month: `${index + 1}`,
@@ -83,7 +83,7 @@ const UserDashboard = () => {
         form.validateFields().then(async (values) => {
             await updateUserInfo(userInfo.userID, values);
             setIsModalOpen(false);
-            fetchUserInfo(userInfo.userID); // GỌI LẠI API ĐỂ LẤY DỮ LIỆU MỚI NHẤT
+            fetchUserInfo(userInfo.userID); 
         }).catch(() => {
             notification.error({ message: 'Form has errors!', description: 'Please fix the errors before submitting.' });
         });
@@ -98,6 +98,11 @@ const UserDashboard = () => {
         { title: "Total", dataIndex: "total", key: "total", render: (text) => `${text} đ` },
         { title: "Status", dataIndex: "status", key: "status" },
     ];
+    const formattedOrders = filteredOrders.map(order => ({
+        ...order,
+        key: order.orderID
+    }));
+
     if (loading) {
         return <div>Loading...</div>;
     }
@@ -143,7 +148,7 @@ const UserDashboard = () => {
 
 
             <Card title="Current orders" style={{ marginTop: 20 }}>
-                <Table dataSource={filteredOrders} columns={columns} pagination={false} />
+                <Table dataSource={formattedOrders} columns={columns} pagination={false} />
             </Card>
 
             <Modal

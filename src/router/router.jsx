@@ -35,7 +35,7 @@ export const routes = [
       { path: "search", element: <Search />, breadcrumb: "Search" },
       { path: "product-detail/:productID", element: <ProductDetail />, breadcrumb: "ProductDetail" },
       { path: "cart", element: <Cart />, breadcrumb: "Cart" },
-      { path: "payment", element: <PaymentResult />, breadcrumb: "Payment" },
+      { path: "payment-result", element: <PaymentResult />, breadcrumb: "Payment" },
       { path: "order", element: <OrderSuccess />, breadcrumb: "Order" },
       {
         path: "checkout",

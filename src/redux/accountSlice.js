@@ -45,7 +45,7 @@ export const { doLoginAction, doLogoutAction, setAppLoading, setUser } = account
 export default accountSlice.reducer;
 
 export const fetchUser = () => async (dispatch, getState) => {
-  dispatch(setAppLoading(true)); // Bắt đầu loading
+  dispatch(setAppLoading(true));
   try {
       let accessToken = localStorage.getItem("accessToken");
 
@@ -60,7 +60,6 @@ export const fetchUser = () => async (dispatch, getState) => {
           response = await fetchProfile(accessToken);
       } catch (error) {
           if (error.response?.status === 401) {
-              console.log("Access token hết hạn, thử refresh...");
               try {
                   const refreshResponse = await authService.refreshAccessToken();
                   if (refreshResponse.data.statusCode === 200) {
@@ -73,7 +72,7 @@ export const fetchUser = () => async (dispatch, getState) => {
               } catch (refreshError) {
                   await authService.logout();
                   dispatch(doLogoutAction());
-                  dispatch(setAppLoading(false)); // Kết thúc loading
+                  dispatch(setAppLoading(false));
                   return;
               }
           } else {
@@ -91,7 +90,7 @@ export const fetchUser = () => async (dispatch, getState) => {
       await authService.logout();
       dispatch(doLogoutAction());
   } finally {
-      dispatch(setAppLoading(false)); // Kết thúc loading
+      dispatch(setAppLoading(false));
   }
 };
 

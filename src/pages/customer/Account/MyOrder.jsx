@@ -47,7 +47,7 @@ function MyOrder() {
             shippingAddress: order.shippingAddress,
             total: order.total,
             details: Array.isArray(details) ? details.map(detail => ({
-              id: detail.id,
+              id: detail.orderDetailID,
               price: detail.price,
               quantity: detail.quantity,
               size: detail?.productDetail?.size || "N/A",
@@ -79,17 +79,17 @@ function MyOrder() {
       children: (
         <div style={{ maxHeight: "500px", overflowY: "scroll" }}>
           {orders.map((order) => (
-            <OrderItem key={order.orderID} order={order} />
+            <OrderItem key={order.id} order={order} />
           ))}
         </div>
       ),
     },
     {
       key: "2",
-      label: "Processing",
+      label: "Pending",
       children: (
         <div style={{ maxHeight: "500px", overflowY: "scroll" }}>
-          {filterOrdersByStatus("Processing").map((order) => (
+          {filterOrdersByStatus("PENDING").map((order) => (
             <OrderItem key={order.id} order={order} />
           ))}
         </div>
@@ -97,10 +97,10 @@ function MyOrder() {
     },
     {
       key: "3",
-      label: "Shipped",
+      label: "Confirmed",
       children: (
         <div style={{ maxHeight: "500px", overflowY: "scroll" }}>
-          {filterOrdersByStatus("Shipped").map((order) => (
+          {filterOrdersByStatus("CONFIRMED").map((order) => (
             <OrderItem key={order.id} order={order} />
           ))}
         </div>
@@ -108,10 +108,32 @@ function MyOrder() {
     },
     {
       key: "4",
+      label: "Shipped",
+      children: (
+        <div style={{ maxHeight: "500px", overflowY: "scroll" }}>
+          {filterOrdersByStatus("SHIPPED").map((order) => (
+            <OrderItem key={order.id} order={order} />
+          ))}
+        </div>
+      ),
+    },
+    {
+      key: "5",
       label: "Delivered",
       children: (
         <div style={{ maxHeight: "500px", overflowY: "scroll" }}>
-          {filterOrdersByStatus("Delivered").map((order) => (
+          {filterOrdersByStatus("DELIVERED").map((order) => (
+            <OrderItem key={order.id} order={order} />
+          ))}
+        </div>
+      ),
+    },
+    {
+      key: "6",
+      label: "Canceled",
+      children: (
+        <div style={{ maxHeight: "500px", overflowY: "scroll" }}>
+          {filterOrdersByStatus("CANCELED").map((order) => (
             <OrderItem key={order.id} order={order} />
           ))}
         </div>

@@ -7,3 +7,11 @@ export const fetchProductById = async (id) => {
     const data = await fetchData(`products/${id}`);
     return data.data;
 };
+export const getRating = async (id) => {
+    const data = await fetchData(`products/get-rating/${id}`);
+    return data.data;
+};
+export const getRelatedProduct = async (id) => {
+    const data = await fetchData(`products/get-related/${id}`);
+    return data.data;
+};
