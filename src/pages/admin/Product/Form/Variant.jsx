@@ -1,30 +1,11 @@
-import { useState } from 'react';
-import { Card, Table, Button, Tag } from 'antd';
-import EditVariantModal from './EditVariantModal';
+import { Button, Card, Table, Tag, Space } from 'antd';
+import { PlusOutlined, EditOutlined } from '@ant-design/icons';
 
-const Variant = ({ variants, onEditVariant, onAddVariant }) => {
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingVariant, setEditingVariant] = useState(null);
-
-  const handleEditClick = (variant) => {
-    setEditingVariant(variant);
-    setIsModalVisible(true);
-  };
-
-  const handleDeleteClick = (variant) => {
-    setEditingVariant(variant);
-    setIsModalVisible(true);
-  };
-
-  const handleModalCancel = () => {
-    setIsModalVisible(false);
-    setEditingVariant(null);
-  };
-
-  const handleModalFinish = (updatedVariant) => {
-    onEditVariant(updatedVariant);
-    setIsModalVisible(false);
-    setEditingVariant(null);
+const Variant = ({ variants = [], onEditVariant, onAddVariant, error }) => {
+  const getStatusColor = (status) => {
+    if (status === 'Enabled') return 'green';
+    if (status === 'Disabled') return 'red';
+    return 'default';
   };
 
   const columns = [
@@ -32,94 +13,104 @@ const Variant = ({ variants, onEditVariant, onAddVariant }) => {
       title: 'Image',
       dataIndex: 'image',
       key: 'image',
-      align: 'center',
-      render: (src) => (
-        <img
-          src={src}
-          alt="variant"
-          style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 4 }}
-        />
-      ),
+      width: 80,
+      render: (image) =>
+        image ? (
+          <img
+            src={image}
+            alt="Variant"
+            style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: '4px' }}
+          />
+        ) : (
+          <div
+            style={{
+              width: 40,
+              height: 40,
+              backgroundColor: '#f0f0f0',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            N/A
+          </div>
+        ),
     },
     {
       title: 'Size',
       dataIndex: 'size',
       key: 'size',
-      align: 'center',
     },
     {
       title: 'Color',
       dataIndex: 'color',
       key: 'color',
-      align: 'center',
       render: (color) => (
-        <>
+        <Space>
           {color}
-          <span style={{ backgroundColor: color, display: 'inline-block', width: '10px', height: '10px', marginLeft: '5px' }} />
-        </>
+          {color && (
+            <span
+              style={{
+                display: 'inline-block',
+                width: 14,
+                height: 14,
+                backgroundColor: color.toLowerCase(),
+                borderRadius: '50%',
+                border: '1px solid #ddd',
+              }}
+            />
+          )}
+        </Space>
       ),
     },
     {
       title: 'Stock',
-      dataIndex: 'stock',
       key: 'stock',
-      align: 'center',
+      render: (_, record) =>
+        record.stockQuantity != null ? record.stockQuantity : (record.stock || 0),
     },
     {
       title: 'Status',
       dataIndex: 'status',
       key: 'status',
-      align: 'center',
-      render: (status) => (
-        <Tag color={status === 'Enabled' ? 'green' : 'red'}>{status}</Tag>
-      ),
+      render: (status) => <Tag color={getStatusColor(status)}>{status}</Tag>,
     },
     {
-      title: 'Actions',
-      key: 'actions',
+      title: 'Action',
+      key: 'action',
       render: (_, record) => (
-        <>
-          <Button
-            type="primary"
-            onClick={() => handleEditClick(record)}
-            style={{ marginRight: '10px' }}
-          >
-            Edit
-          </Button>
-          <Button
-            type="text"
-            onClick={() => handleDeleteClick(record)}
-            style={{ color: 'red' }}
-          >
-            Delete
-          </Button>
-        </>
-
+        <Button type="link" icon={<EditOutlined />} onClick={() => onEditVariant(record)}>
+          Edit
+        </Button>
       ),
     },
   ];
 
   return (
-    <>
-      <Card style={{ marginBottom: 24 }}>
-        <h3>Variant</h3>
-        <Table
-          columns={columns}
-          dataSource={variants}
-          pagination={false}
-          style={{ marginBottom: 16 }}
-        />
-        <Button type="primary" onClick={onAddVariant}>
+    <Card style={{ marginBottom: 24 }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: 16,
+        }}
+      >
+        <h3 style={{ margin: 0 }}>Variants</h3>
+        <Button type="primary" icon={<PlusOutlined />} onClick={onAddVariant}>
           Add Variant
         </Button>
-      </Card>
-      <EditVariantModal
-        open={isModalVisible}
-        variant={editingVariant}
-        onCancel={handleModalCancel}
-        onFinish={handleModalFinish}
-      />
-    </>
+      </div>
+
+      <Table dataSource={variants} columns={columns} pagination={false} rowKey={(record) => record.productDetailID || record.key || Date.now()} />
+
+      {error && (
+        <div style={{ color: '#ff4d4f', marginTop: 8 }}>
+          {error}
+        </div>
+      )}
+    </Card>
   );
 };
 

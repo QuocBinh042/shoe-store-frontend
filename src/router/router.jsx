@@ -25,6 +25,7 @@ import CouponGenerator from "../pages/admin/Promotion/CouponGenerator";
 import MarketingIntegration from "../pages/admin/Promotion/MarketingIntegration";
 import CustomerManager from "../pages/admin/Customer";
 import CustomerDetail from "../pages/admin/Customer/CustomerDetails";
+import ProductForm from "../pages/admin/Product/Form/ProductForm";
 export const routes = [
   {
     path: "/",
@@ -71,6 +72,16 @@ export const routes = [
       {
         path: "products",
         element: <ProductManager />,
+        children: [
+          {
+            path: "create",
+            element: <ProductForm mode="create" />,
+          },
+          {
+            path: ":id/edit",
+            element: <ProductForm mode="edit" />,
+          },
+        ]
       },
       {
         path: "orders",
