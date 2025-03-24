@@ -8,7 +8,6 @@ import Review from "./Review";
 import { useSelector } from "react-redux";
 import { fetchProductDetailByProductId } from "../../../services/productDetailService";
 import { addCartItem } from "../../../services/cartItemService";
-import { getDiscountByProduct } from "../../../services/promotionService";
 const ProductDetails = () => {
   const navigate = useNavigate();
   const { productID } = useParams();
@@ -23,7 +22,6 @@ const ProductDetails = () => {
   const [availableColors, setAvailableColors] = useState([]);
   const [selectedStock, setSelectedStock] = useState(null);
   const [productDetails, setProductDetails] = useState([]);
-  const [discountedPrice, setDiscountedPrice] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const user = useSelector((state) => state.account.user);
   const location = useLocation();
@@ -32,8 +30,7 @@ const ProductDetails = () => {
       setIsLoading(true);
       try {
         const details = await fetchProductDetailByProductId(productID);
-        const discount = await getDiscountByProduct(productID);
-
+console.log(details)
         if (details) {
           setProduct({
             productName: details.productName || "No name",
@@ -42,11 +39,12 @@ const ProductDetails = () => {
             description: details.description || "No description",
             imageURL: details.imageURL || [],
             price: details.price || 0,
+            discount:details.discountPrice
           });
 
           setProductDetails(details.productDetails || []);
           setAvailableColors([...new Set(details.productDetails?.map(d => d.color))] || []);
-          setDiscountedPrice(discount ?? details.price);
+          // setDiscountedPrice(discount ?? details.price);
         } else {
           setProduct(null);
         }
@@ -100,7 +98,7 @@ const ProductDetails = () => {
     const formattedItem = {
       key: selectedDetail.productDetailID,
       name: product?.productName || 'Unknown',
-      price: discountedPrice || 0,
+      price: product.discount,
       quantity: quantity,
       color: selectedColor,
       size: selectedSize,
@@ -223,10 +221,10 @@ const ProductDetails = () => {
 
               <h1>{product?.productName}</h1>
               <div className="product-pricing">
-                {discountedPrice && discountedPrice < product.price ? (
+                {product.discount !== product.price ? (
                   <>
                     <span className="discounted-price">
-                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(discountedPrice)}
+                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.discount)}
                     </span>
                     <span className="original-price" style={{ textDecoration: "line-through", color: "#888" }}>
                       {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}
@@ -320,11 +318,11 @@ const ProductDetails = () => {
             </div>
             <div className="order-item">
               <span>Price</span>
-              <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(discountedPrice)}</span>
+              <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.discount)}</span>
             </div>
             <div className="order-total">
               <span>Sub Total</span>
-              <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(discountedPrice * quantity)}</span>
+              <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.discount * quantity)}</span>
             </div>
 
             <div className="order-actions">

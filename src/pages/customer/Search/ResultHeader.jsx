@@ -45,7 +45,7 @@ const ResultsHeader = ({ resultsCount, keyword, onKeywordChange, onSortChange, c
     }}>
       <div>
         <h3 style={{ margin: 0, fontSize: "18px" }}>
-          Results <strong>{keyword}</strong> (<strong>{resultsCount}</strong>)
+          Results (<strong>{resultsCount}</strong>)
         </h3>
       </div>
 
@@ -54,7 +54,7 @@ const ResultsHeader = ({ resultsCount, keyword, onKeywordChange, onSortChange, c
           placeholder="Search products..."
           value={keyword}
           onChange={handleSearchChange}
-          prefix={<SearchOutlined style={{ color: "#999" }} />} 
+          prefix={<SearchOutlined style={{ color: "#999" }} />}
           style={{
             width: 300,
             height: 40,
@@ -62,8 +62,10 @@ const ResultsHeader = ({ resultsCount, keyword, onKeywordChange, onSortChange, c
             border: "1px solid #ddd",
             paddingLeft: "12px",
             boxShadow: "0 2px 4px rgba(0, 0, 0, 0.05)",
+            background: "#fff",
           }}
         />
+
         <Dropdown menu={{ items, onClick: handleMenuClick }}>
           <Button
             style={{

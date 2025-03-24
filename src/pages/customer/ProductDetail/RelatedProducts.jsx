@@ -1,11 +1,8 @@
-import { HeartOutlined, ShoppingCartOutlined, ShoppingOutlined } from "@ant-design/icons";
 import { useEffect, useState } from "react";
 import { Badge, Card, Carousel, Image, Rate, Tooltip, Row, Col, } from "antd";
 import shoe from "../../../assets/images/products/shoe3.png";
 import { useNavigate } from "react-router-dom";
-import { getRelatedProduct, getRating } from "../../../services/productService";
-import { getDiscountByProduct } from "../../../services/promotionService";
-// import '../Home/Home.scss'
+import { getRelatedProduct } from "../../../services/productService";
 const RelatedProducts = ({ productId }) => {
   const navigate = useNavigate();
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -13,19 +10,7 @@ const RelatedProducts = ({ productId }) => {
     const fetchRelatedProducts = async () => {
       try {
         const response = await getRelatedProduct(productId)
-        console.log(response)
-        const productsWithDiscounts = await Promise.all(
-          response.map(async (product) => {
-            const discountResponse = await getDiscountByProduct(product.productID)
-            const rating = await getRating(product.productID);
-            return {
-              ...product,
-              discount: discountResponse || 0,
-              rating
-            };
-          })
-        );
-        setRelatedProducts(productsWithDiscounts);
+        setRelatedProducts(response);
       } catch (error) {
         console.error("Error fetching related products:", error);
       }
@@ -39,7 +24,7 @@ const RelatedProducts = ({ productId }) => {
   //   e.stopPropagation();
   //   console.log(`${action} clicked for product: ${products.name}`);
   // };
-  const handleAddCart = (productID) => {
+  const handleDetails = (productID) => {
     navigate(`/product-detail/${productID}`);
   };
   return (
@@ -54,7 +39,7 @@ const RelatedProducts = ({ productId }) => {
                 style={{ marginLeft: 15, marginRight: 10, width: '88%' }}
                 cover={
                   <Badge.Ribbon
-                    text={product.discount !== product.price ? `Sale` : ''}
+                    text={product.discountPrice!== product.price ? `Sale` : ''}
                     color="red"
                     placement="start"
                   >
@@ -62,7 +47,7 @@ const RelatedProducts = ({ productId }) => {
                   </Badge.Ribbon>
                 }
                 hoverable
-                onClick={() => navigate(`/product-detail/${product.productID}`)}
+                onClick={() => handleDetails(product.productID)}
               >
                 <div style={{ minHeight: "30px", display: "flex", alignItems: "center", marginBottom: 10 }}>
                   {product.rating > 0 ? (
@@ -80,13 +65,13 @@ const RelatedProducts = ({ productId }) => {
                   }
                   description={
                     <>
-                      {product.discount !== product.price ? (
+                      {product.discountPrice !== product.price ? (
                         <>
                           <span style={{ textDecoration: 'line-through', color: '#888', marginRight: 8 }}>
                             {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}
                           </span>
                           <span style={{ fontWeight: 'bold', color: '#fa541c' }}>
-                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.discount)}
+                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.discountPrice)}
 
                           </span>
                         </>

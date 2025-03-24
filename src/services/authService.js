@@ -23,7 +23,14 @@ const login = async (values) => {
     throw error;
   }
 };
-
+const signup = async (values) => {
+  try {
+    const data = await postData("/auth/sign-up", values);
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
 const logout = async () => {
   try {
     await apiClient.post("/auth/logout");
@@ -51,4 +58,5 @@ export const authService = {
   login,
   logout,
   refreshAccessToken,
+  signup
 };
