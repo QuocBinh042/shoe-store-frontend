@@ -139,7 +139,6 @@ const ProductForm = ({ mode }) => {
       productImages.map(async (img) => {
         if (img.file) {
           const response = await uploadImage(img.file, product?.productID);
-          console.log('Uploaded image:', response);
           return response.data.public_id;
         }
         return img.url;
@@ -157,13 +156,12 @@ const ProductForm = ({ mode }) => {
       supplierID: values.supplierID,
     };
 
-    console.log('Product data:', productData);
     setSubmitting(true);
     try {
       let productId;
       if (mode === 'edit') {
-        await updateProduct(product.productID, productData);
         productId = product.productID;
+        await updateProduct(productId, productData);
         message.success('Product updated successfully');
       } else {
         const response = await createProduct(productData);
@@ -173,15 +171,13 @@ const ProductForm = ({ mode }) => {
       
       for (const variant of variants) {
         const variantData = {
-          productID: productId,
           size: variant.size,
           color: variant.color,
           stockQuantity: variant.stockQuantity || variant.stock || 0,
           status: variant.status || 'Enabled',
         };
-        if (!variant.productDetailID || variant.productDetailID === 0) {
-          await createProductDetail(productId, variantData);
-        }
+
+        await createProductDetail(productId, variantData);
       }
       
       navigate('/admin/products');
