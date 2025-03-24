@@ -1,104 +1,121 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, Row, Col, Upload, message, Modal, Button } from 'antd';
-import { UploadOutlined } from '@ant-design/icons';
+import { UploadOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { uploadImage } from '../../../../services/uploadService';
+import CloudinaryImage from '../../../../utils/cloudinaryImage';
 
-const beforeUpload = (file) => {
-  const isImage = file.type.startsWith('image/');
-  if (!isImage) {
-    message.error(`${file.name} is not an image file.`);
-  }
-  return isImage || Upload.LIST_IGNORE;
-};
+const ProductImages = ({
+  product,
+  onImagesUpdate,
+  maxImages = 8
+}) => {
+  // Lưu mảng đối tượng { file, url }
+  const [images, setImages] = useState(
+    product?.imageURL ? product.imageURL.map(url => ({ url })) : []
+  );
 
-const renderUploadDragger = (placeholder) => (
-  <Upload.Dragger
-    name="file"
-    multiple={false}
-    beforeUpload={beforeUpload}
-    showUploadList={false}
-    style={{
-      border: '2px dashed #d9d9d9',
-      borderRadius: 8,
-      textAlign: 'center',
-      padding: 24,
-      minHeight: 180,
-    }}
-    onChange={(info) => {
-      if (info.file.status === 'done') {
-        message.success(`${info.file.name} file uploaded successfully.`);
-      } else if (info.file.status === 'error') {
-        message.error(`${info.file.name} file upload failed.`);
-      }
-    }}
-  >
-    <p style={{ marginBottom: 8 }}>
-      <UploadOutlined style={{ fontSize: 32 }} />
-    </p>
-    <p style={{ marginBottom: 8, fontSize: 16 }}>{placeholder}</p>
-    <Button type="link">Click to browse</Button>
-  </Upload.Dragger>
-);
+  useEffect(() => {
+    if (product?.imageURL) {
+      setImages(product.imageURL.map(url => ({ url })));
+    } else {
+      setImages([]);
+    }
+  }, [product]);
 
-const renderExistingImage = (imageUrl) => (
-  <div
-    style={{
-      width: 120,
-      height: 120,
-      border: '1px solid #d9d9d9',
-      borderRadius: 8,
-      overflow: 'hidden',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    <img
-      src={imageUrl}
-      alt="Existing product"
-      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-    />
-  </div>
-);
+  const [uploading, setUploading] = useState(false);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(null);
 
-const renderMoreBox = (count, onClick) => (
-  <div
-    onClick={onClick}
-    style={{
-      width: 120,
-      height: 120,
-      border: '1px solid #d9d9d9',
-      borderRadius: 8,
-      cursor: 'pointer',
-      fontSize: 18,
-      color: '#555',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}
-  >
-    +{count}
-  </div>
-);
+  // Sử dụng FileReader để tạo Data URL cho preview
+  const handleImageUpload = (options) => {
+    const { file } = options;
+    if (!file.type.startsWith('image/')) {
+      message.error('You can only upload image files!');
+      return;
+    }
+    if (images.length >= maxImages) {
+      message.error(`Maximum ${maxImages} images allowed`);
+      return;
+    }
+    setUploading(true);
+    const reader = new FileReader();
+    reader.onload = () => {
+      // reader.result là Data URL
+      const newImage = { file, url: reader.result };
+      const newImages = [...images, newImage];
+      setImages(newImages);
+      onImagesUpdate && onImagesUpdate(newImages);
+      message.success('Image added successfully');
+      setUploading(false);
+    };
+    reader.onerror = () => {
+      message.error('Image preview failed');
+      setUploading(false);
+    };
+    reader.readAsDataURL(file);
+  };
 
-const ProductImages = ({ product }) => {
-  // Lấy danh sách ảnh từ product; nếu chưa có thì mảng rỗng
-  const images = product?.images || [];
-  const isUpdate = images.length > 0;
+  const handleRemoveImage = (indexToRemove) => {
+    const newImages = images.filter((_, index) => index !== indexToRemove);
+    setImages(newImages);
+    onImagesUpdate && onImagesUpdate(newImages);
+  };
 
-  // State cho Modal hiển thị toàn bộ ảnh
-  const [visible, setVisible] = useState(false);
-  const handleOpenModal = () => setVisible(true);
-  const handleCloseModal = () => setVisible(false);
+  const handlePreviewImage = (index) => {
+    setSelectedImageIndex(index);
+    setModalVisible(true);
+  };
 
-  // Tính toán số ảnh hiển thị nếu cập nhật
-  let displayImages = [];
-  let moreCount = 0;
-  if (images.length <= 4) {
-    displayImages = images;
-  } else {
-    displayImages = images.slice(0, 3);
-    moreCount = images.length - 3;
-  }
+  const uploadButton = (
+    <div>
+      <UploadOutlined />
+      <div style={{ marginTop: 8 }}>Upload</div>
+    </div>
+  );
+
+  // Nếu imageObj.url bắt đầu bằng "data:" thì hiển thị trực tiếp bằng <img>, nếu không dùng CloudinaryImage
+  const renderImageWithActions = (imageObj, index) => (
+    <div style={{ position: 'relative', width: 120, height: 120 }}>
+      {imageObj.url.startsWith('data:') ? (
+        <img
+          src={imageObj.url}
+          alt={`Product ${index + 1}`}
+          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
+        />
+      ) : (
+        <CloudinaryImage
+          publicId={imageObj.url}
+          alt={`Product ${index + 1}`}
+          options={{ width: 120, height: 120, crop: 'fill' }}
+          style={{ borderRadius: 8, width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      )}
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          display: 'flex',
+          zIndex: 10,
+        }}
+      >
+        <Button
+          type="text"
+          size="small"
+          icon={<EyeOutlined />}
+          onClick={() => handlePreviewImage(index)}
+          style={{ color: 'white', backgroundColor: 'rgba(0,0,0,0.5)' }}
+        />
+        <Button
+          type="text"
+          size="small"
+          icon={<DeleteOutlined />}
+          onClick={() => handleRemoveImage(index)}
+          style={{ color: 'white', backgroundColor: 'rgba(0,0,0,0.5)' }}
+        />
+      </div>
+    </div>
+  );
 
   return (
     <Card style={{ marginBottom: 24, width: '100%' }}>
@@ -106,51 +123,47 @@ const ProductImages = ({ product }) => {
         <h3 style={{ margin: 0 }}>Product Images</h3>
       </Row>
 
-      {isUpdate ? (
-        <Row gutter={32}>
-          {/* Khu vực upload luôn bên trái */}
-          <Col xs={24} sm={8}>
-            {renderUploadDragger('Drop your image here')}
+      <Row gutter={[16, 16]}>
+        {images.map((imageObj, index) => (
+          <Col key={index}>{renderImageWithActions(imageObj, index)}</Col>
+        ))}
+
+        {images.length < maxImages && (
+          <Col>
+            <Upload
+              listType="picture-card"
+              showUploadList={false}
+              customRequest={handleImageUpload}
+              disabled={uploading}
+            >
+              {uploadButton}
+            </Upload>
           </Col>
-          {/* Khu vực hiển thị ảnh */}
-          <Col xs={24} sm={16}>
-            <Row gutter={[32, 16]}>
-              {displayImages.map((src, index) => (
-                <Col key={index}>
-                  {renderExistingImage(src)}
-                </Col>
-              ))}
-              {images.length > 4 && (
-                <Col>
-                  {renderMoreBox(moreCount, handleOpenModal)}
-                </Col>
-              )}
-            </Row>
-          </Col>
-        </Row>
-      ) : (
-        // Create mode: chỉ hiển thị 1 khu vực upload ảnh
-        <Row>
-          <Col span={24}>
-            {renderUploadDragger('Drop your image here')}
-          </Col>
-        </Row>
-      )}
+        )}
+      </Row>
 
       <Modal
-        open={visible}
-        onCancel={handleCloseModal}
+        open={modalVisible}
         footer={null}
-        title="All Product Images"
-        width={500}
+        onCancel={() => setModalVisible(false)}
+        width={600}
       >
-        <Row gutter={[16, 16]}>
-          {images.map((src, index) => (
-            <Col key={index} xs={16} sm={8}>
-              {renderExistingImage(src)}
-            </Col>
-          ))}
-        </Row>
+        {selectedImageIndex !== null && (
+          images[selectedImageIndex].url.startsWith('data:') ? (
+            <img
+              src={images[selectedImageIndex].url}
+              alt={`Full view ${selectedImageIndex + 1}`}
+              style={{ width: '100%', maxHeight: 500, objectFit: 'contain' }}
+            />
+          ) : (
+            <CloudinaryImage
+              publicId={images[selectedImageIndex].url}
+              alt={`Full view ${selectedImageIndex + 1}`}
+              options={{ width: 600, crop: 'limit' }}
+              style={{ width: '100%', maxHeight: 500, objectFit: 'contain' }}
+            />
+          )
+        )}
       </Modal>
     </Card>
   );

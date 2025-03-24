@@ -10,16 +10,24 @@ import {
   Card,
   Modal,
   message,
-  Upload,
+  Space,
 } from 'antd';
-import { EyeOutlined, LeftOutlined, UploadOutlined } from '@ant-design/icons';
+import { 
+  AppstoreOutlined, 
+  EyeOutlined, 
+  LeftOutlined, 
+  ShopOutlined, 
+  TrademarkCircleOutlined 
+} from '@ant-design/icons';
 import Variant from './Variant';
 import EditVariantModal from './EditVariantModal';
+import ProductImages from './ProductImages'; 
 import { getAllBrands } from '../../../../services/brandService';
 import { getAllCategories } from '../../../../services/categoryService';
 import { getAllSuppliers } from '../../../../services/supplierService';
 import { createProduct, fetchProductById, updateProduct } from '../../../../services/productService';
-import { createProductDetail } from '../../../../services/productDetailService'; // Thêm import
+import { createProductDetail } from '../../../../services/productDetailService';
+import { uploadImage } from '../../../../services/uploadService';
 import { useNavigate, useParams } from 'react-router-dom';
 
 const { TextArea } = Input;
@@ -37,10 +45,12 @@ const ProductForm = ({ mode }) => {
   const [suppliers, setSuppliers] = useState([]);
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
-  const [fileList, setFileList] = useState([]);
+  // productImages là mảng các đối tượng { file, url }
+  const [productImages, setProductImages] = useState([]);
   const [editingVariant, setEditingVariant] = useState(null);
   const [isEditVariantModalOpen, setIsEditVariantModalOpen] = useState(false);
 
+  // Fetch product when editing
   useEffect(() => {
     if (mode === 'edit' && id) {
       const fetchProduct = async () => {
@@ -48,6 +58,8 @@ const ProductForm = ({ mode }) => {
           const response = await fetchProductById(id);
           if (response) {
             setProduct(response);
+            // Khởi tạo productImages từ response.imageURL (mảng các URL)
+            setProductImages(response.imageURL ? response.imageURL.map(url => ({ url })) : []);
           } else {
             message.error('Product not found');
             navigate('/admin/products');
@@ -62,6 +74,7 @@ const ProductForm = ({ mode }) => {
     }
   }, [mode, id, navigate]);
 
+  // Set form values when product is loaded
   useEffect(() => {
     if (product) {
       form.setFieldsValue({
@@ -77,35 +90,19 @@ const ProductForm = ({ mode }) => {
     } else if (mode !== 'edit') {
       form.resetFields();
       setVariants([]);
+      setProductImages([]);
     }
     setFormErrors({});
   }, [product, form, mode]);
-
-  useEffect(() => {
-    if (product && product.imageURL && product.imageURL.length > 0) {
-      const initialFileList = product.imageURL.map((url, index) => ({
-        uid: `-${index}`,
-        name: `Image ${index + 1}`,
-        status: 'done',
-        url,
-        thumbUrl: url,
-      }));
-      setFileList(initialFileList);
-    } else {
-      setFileList([]);
-    }
-  }, [product]);
 
   const categoryOptions = useMemo(() =>
     categories.map(category => ({ value: category.categoryID, label: category.name })),
     [categories]
   );
-
   const brandOptions = useMemo(() =>
     brands.map(brand => ({ value: brand.brandID, label: brand.name })),
     [brands]
   );
-
   const supplierOptions = useMemo(() =>
     suppliers.map(supplier => ({ value: supplier.supplierID, label: supplier.supplierName })),
     [suppliers]
@@ -133,13 +130,25 @@ const ProductForm = ({ mode }) => {
   const handleFinish = async (values) => {
     setFormErrors({});
 
-    const imageURLs = fileList
-      .filter(file => file.status === 'done' && (file.url || file.response))
-      .map(file => file.url || (file.response && file.response.url));
+    if (productImages.length === 0) {
+      setFormErrors(prev => ({ ...prev, imageURL: 'Please upload at least one product image' }));
+      return;
+    }
+
+    const uploadedImages = await Promise.all(
+      productImages.map(async (img) => {
+        if (img.file) {
+          const response = await uploadImage(img.file, product?.productID);
+          console.log('Uploaded image:', response);
+          return response.data.public_id;
+        }
+        return img.url;
+      }),
+    );
 
     const productData = {
       productName: values.productName,
-      imageURL: imageURLs,
+      imageURL: uploadedImages,
       description: values.description || '',
       price: values.price,
       status: values.status || 'Available',
@@ -148,6 +157,7 @@ const ProductForm = ({ mode }) => {
       supplierID: values.supplierID,
     };
 
+    console.log('Product data:', productData);
     setSubmitting(true);
     try {
       let productId;
@@ -157,20 +167,23 @@ const ProductForm = ({ mode }) => {
         message.success('Product updated successfully');
       } else {
         const response = await createProduct(productData);
-        productId = response.data.productID; 
+        productId = response.data.productID;
         message.success('Product created successfully');
-
-        for (const variant of variants) {
-          const variantData = {
-            productID: productId,
-            size: variant.size,
-            color: variant.color,
-            stockQuantity: variant.stockQuantity || variant.stock || 0,
-            status: variant.status || 'Enabled',
-          };
-          await createProductDetail(variantData);
+      }
+      
+      for (const variant of variants) {
+        const variantData = {
+          productID: productId,
+          size: variant.size,
+          color: variant.color,
+          stockQuantity: variant.stockQuantity || variant.stock || 0,
+          status: variant.status || 'Enabled',
+        };
+        if (!variant.productDetailID || variant.productDetailID === 0) {
+          await createProductDetail(productId, variantData);
         }
       }
+      
       navigate('/admin/products');
     } catch (error) {
       console.error('Error submitting product:', error);
@@ -180,58 +193,16 @@ const ProductForm = ({ mode }) => {
     }
   };
 
-  const handleUploadChange = ({ fileList: newFileList }) => {
-    setFileList(newFileList);
-  };
-
-  const uploadProps = {
-    name: 'file',
-    multiple: true,
-    listType: 'picture-card',
-    fileList: fileList,
-    onChange: handleUploadChange,
-    beforeUpload: (file) => {
-      const isImage = file.type.startsWith('image/');
-      if (!isImage) {
-        message.error('You can only upload image files!');
-        return Upload.LIST_IGNORE;
-      }
-      return new Promise(resolve => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = () => {
-          file.url = reader.result;
-          resolve(file);
-        };
+  const handleImagesUpdate = (newImages) => {
+    setProductImages(newImages);
+    if (formErrors.imageURL) {
+      setFormErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.imageURL;
+        return newErrors;
       });
-    },
-    onPreview: async (file) => {
-      let src = file.url;
-      if (!src) {
-        src = await new Promise(resolve => {
-          const reader = new FileReader();
-          reader.readAsDataURL(file.originFileObj);
-          reader.onload = () => resolve(reader.result);
-        });
-      }
-      const image = new Image();
-      image.src = src;
-      const imgWindow = window.open(src);
-      imgWindow.document.writeln(image.outerHTML);
-    },
-    customRequest: ({ file, onSuccess }) => {
-      setTimeout(() => {
-        onSuccess({ url: URL.createObjectURL(file) });
-      }, 1000);
-    },
+    }
   };
-
-  const uploadButton = (
-    <div>
-      <UploadOutlined />
-      <div style={{ marginTop: 8 }}>Upload</div>
-    </div>
-  );
 
   const handleEditVariant = (record) => {
     setEditingVariant(record);
@@ -249,7 +220,7 @@ const ProductForm = ({ mode }) => {
         prev.map(v => (v.productDetailID === updatedVariant.productDetailID ? updatedVariant : v))
       );
     } else {
-      setVariants(prev => [...prev, { ...updatedVariant, productDetailID: Date.now() }]); // Tạo ID tạm
+      setVariants(prev => [...prev, { ...updatedVariant, productDetailID: Date.now() }]);
     }
     setIsEditVariantModalOpen(false);
   };
@@ -306,20 +277,74 @@ const ProductForm = ({ mode }) => {
               >
                 <TextArea rows={4} placeholder="Product Description" />
               </Form.Item>
-              <Form.Item
-                label="Product Images"
-                validateStatus={formErrors.imageURL ? 'error' : undefined}
-                help={formErrors.imageURL}
-              >
-                <Upload {...uploadProps}>
-                  {fileList.length >= 8 ? null : uploadButton}
-                </Upload>
-                <div style={{ marginTop: 8, color: '#999' }}>
-                  Upload product images (supports JPG, PNG)
+              <Row gutter={16}>
+                <Col span={8}>
+                  <Form.Item
+                    label={<Space><AppstoreOutlined /> <span>Category</span></Space>}
+                    name="categoryID"
+                    rules={[{ required: true, message: 'Please select a category' }]}
+                    validateStatus={formErrors.categoryID ? 'error' : undefined}
+                    help={formErrors.categoryID}
+                  >
+                    <Select placeholder="Select Category" loading={categoryOptions.length === 0}>
+                      {categoryOptions.map((option, index) => (
+                        <Option key={`${option.value}-${index}`} value={option.value}>
+                          {option.label}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    label={<Space><TrademarkCircleOutlined /> <span>Brand</span></Space>}
+                    name="brandID"
+                    rules={[{ required: true, message: 'Please select a brand' }]}
+                    validateStatus={formErrors.brandID ? 'error' : undefined}
+                    help={formErrors.brandID}
+                  >
+                    <Select placeholder="Select Brand" loading={brandOptions.length === 0}>
+                      {brandOptions.map((option, index) => (
+                        <Option key={`${option.value}-${index}`} value={option.value}>
+                          {option.label}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={8}>
+                  <Form.Item
+                    label={<Space><ShopOutlined /> <span>Supplier</span></Space>}
+                    name="supplierID"
+                    rules={[{ required: true, message: 'Please select a supplier' }]}
+                    validateStatus={formErrors.supplierID ? 'error' : undefined}
+                    help={formErrors.supplierID}
+                  >
+                    <Select placeholder="Select Supplier" loading={supplierOptions.length === 0}>
+                      {supplierOptions.map((option, index) => (
+                        <Option key={`${option.value}-${index}`} value={option.value}>
+                          {option.label}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              {/* Product Images */}
+              <ProductImages 
+                product={product}
+                onImagesUpdate={handleImagesUpdate}
+                maxImages={8}
+              />
+              {formErrors.imageURL && (
+                <div style={{ color: '#ff4d4f', marginTop: -16, marginBottom: 16 }}>
+                  {formErrors.imageURL}
                 </div>
-              </Form.Item>
+              )}
             </Card>
           </Col>
+
           <Col span={8}>
             <Card style={{ marginBottom: 8 }}>
               <h3 style={{ marginTop: 0 }}>Sales Information</h3>
@@ -334,7 +359,7 @@ const ProductForm = ({ mode }) => {
               </Form.Item>
               <Form.Item name="promotionID" label="Promotion">
                 <div style={{ display: 'flex', gap: 5 }}>
-                  <Select placeholder="Select promotion (optional)">
+                  <Select placeholder="Select promotion (optional)" style={{ flex: 1 }}>
                     <Option value={1}>Promo 1</Option>
                     <Option value={2}>Promo 2</Option>
                     <Option value={3}>Promo 3</Option>
@@ -374,7 +399,7 @@ const ProductForm = ({ mode }) => {
           variant={editingVariant}
           onCancel={() => setIsEditVariantModalOpen(false)}
           onFinish={handleVariantFinish}
-          productId={product?.productID || 0}
+          productId={mode === 'edit' ? product?.productID : undefined}
         />
 
         <div style={{ textAlign: 'right', marginTop: 16 }}>
