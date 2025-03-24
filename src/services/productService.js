@@ -1,4 +1,4 @@
-import { fetchData } from './apiService'
+import { fetchData, postData, putData } from './apiService'
 
 export const fetchProductByProductDetailId = async (id) => {
   const data = await fetchData(`products/by-product-details-id/${id}`);
@@ -10,6 +10,16 @@ export const fetchProductById = async (id) => {
   const data = await fetchData(`products/${id}`);
   return data.data;
 };
+
+export const createProduct = async (product) => {
+  const data = await postData('products', product);
+  return data;
+}
+
+export const updateProduct = async (id, product) => {
+  const data = await putData(`products/${id}`, product);
+  return data;
+}
 
 export const getAllProducts = async ({
   page,

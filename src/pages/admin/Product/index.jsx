@@ -15,7 +15,6 @@ import {
 } from 'antd';
 import debounce from 'lodash/debounce';
 import './Product.scss';
-import ProductForm from './Form/ProductForm';
 import { getAllProducts } from '../../../services/productService';
 import { buildCloudinaryUrl, currencyFormat } from '../../../utils/helper';
 import { getAllCategories } from '../../../services/categoryService';
@@ -26,22 +25,22 @@ import {
   FilterOutlined,
   PlusOutlined,
   ReloadOutlined,
-  SearchOutlined,
   ShopOutlined,
   TrademarkCircleOutlined,
 } from '@ant-design/icons';
+import { useNavigate, useOutlet } from 'react-router-dom';
 
 const { Title } = Typography;
 const { Option } = Select;
 
 const ProductManager = () => {
+  const outlet = useOutlet();
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [showForm, setShowForm] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState(null);
 
   const [filters, setFilters] = useState({
     status: undefined,
@@ -197,24 +196,6 @@ const ProductManager = () => {
   []
 );
 
-  // Lọc phía client cho status, categoryId, brandId, supplierId
-  // const clientFilteredProducts = useMemo(() => {
-  //   let filtered = [...products];
-  //   if (filters.status) {
-  //     filtered = filtered.filter((product) => product.status === filters.status);
-  //   }
-  //   if (filters.categoryId) {
-  //     filtered = filtered.filter((product) => product.categoryID === filters.categoryId);
-  //   }
-  //   if (filters.brandId) {
-  //     filtered = filtered.filter((product) => product.brandID === filters.brandId);
-  //   }
-  //   if (filters.supplierId) {
-  //     filtered = filtered.filter((product) => product.supplierID === filters.supplierId);
-  //   }
-  //   return filtered;
-  // }, [products, filters.status, filters.categoryId, filters.brandId, filters.supplierId]);
-
   const enhancedProducts = useMemo(() => {
     const categoryMap = categories.reduce((map, category) => {
       map[category.categoryID] = category.name;
@@ -238,49 +219,12 @@ const ProductManager = () => {
     }));
   }, [products, categories, brands, suppliers]);
 
-  // Xử lý sự kiện
   const handleEditClick = (record) => {
-    setSelectedProduct(record);
-    setShowForm(true);
+    navigate(`/admin/products/${record.productID}/edit`);
   };
 
   const handleCreateClick = () => {
-    setSelectedProduct(null);
-    setShowForm(true);
-  };
-
-  const handleBack = () => {
-    setShowForm(false);
-    setSelectedProduct(null);
-  };
-
-  const handleFormSubmit = (values) => {
-    console.log('Submitted values:', values);
-    setShowForm(false);
-    setSelectedProduct(null);
-    // Làm mới danh sách sản phẩm sau khi tạo/cập nhật
-    const fetchProducts = async () => {
-      try {
-        const productResponse = await getAllProducts({
-          page: 1,
-          pageSize: pagination.pageSize,
-        });
-        if (productResponse.statusCode === 200) {
-          const { items, totalElements, currentPage, pageSize } = productResponse.data;
-          setProducts(items);
-          setPagination({
-            currentPage,
-            pageSize,
-            totalElements,
-            totalPages: Math.ceil(totalElements / pageSize),
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching products:', error);
-        message.error('Không thể tải danh sách sản phẩm. Vui lòng thử lại.');
-      }
-    };
-    fetchProducts();
+    navigate('/admin/products/create');
   };
 
   const handleTableChange = (paginationInfo) => {
@@ -513,21 +457,9 @@ const ProductManager = () => {
       </Row>
     </Card>
   );
-
-  // Giao diện chính
-  if (showForm) {
-    return (
-      <ProductForm
-        product={selectedProduct}
-        onBack={handleBack}
-        onSubmit={handleFormSubmit}
-        categories={categories}
-        brands={brands}
-        suppliers={suppliers}
-      />
-    );
+  if (outlet) {
+    return outlet;
   }
-
   return (
     <div className="product-list">
       <Card className="product-list__card">
@@ -557,6 +489,7 @@ const ProductManager = () => {
           onChange={handleTableChange}
         />
       </Card>
+      
     </div>
   );
 };
