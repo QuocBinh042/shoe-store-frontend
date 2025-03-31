@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { 
-  Typography, 
-  Card, 
-  Tabs, 
-  Button, 
-  Row, 
-  Col, 
-  Table, 
-  Tag, 
-  Space, 
-  Input, 
+import {
+  Typography,
+  Card,
+  Tabs,
+  Button,
+  Row,
+  Col,
+  Table,
+  Tag,
+  Space,
+  Input,
   Select,
   DatePicker,
   Statistic,
@@ -17,10 +17,10 @@ import {
   message,
   Dropdown
 } from 'antd';
-import { 
-  PlusOutlined, 
-  SearchOutlined, 
-  EditOutlined, 
+import {
+  PlusOutlined,
+  SearchOutlined,
+  EditOutlined,
   DeleteOutlined,
   EyeOutlined,
   FilterOutlined,
@@ -273,11 +273,11 @@ const PromotionDashboard = () => {
       <Row gutter={[16, 16]} className="stats-row">
         {stats.map((stat, index) => (
           <Col xs={24} sm={12} lg={6} key={index}>
-            <Card 
-              className="stat-card" 
+            <Card
+              className="stat-card"
               bordered={false}
-              style={{ 
-                backgroundColor: stat.color, 
+              style={{
+                backgroundColor: stat.color,
                 borderLeft: `4px solid ${stat.borderColor}`,
                 borderRadius: '8px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.09)'
@@ -295,10 +295,10 @@ const PromotionDashboard = () => {
       </Row>
 
       {/* Main Content Card */}
-      <Card 
+      <Card
         className="content-card"
-        style={{ 
-          marginTop: '16px', 
+        style={{
+          marginTop: '16px',
           borderRadius: '8px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.09)'
         }}
@@ -336,10 +336,10 @@ const PromotionDashboard = () => {
                   </Button>
                 </Dropdown>
 
-                <Button 
+                <Button
                   icon={<LineChartOutlined />}
                   onClick={() => navigate('/admin/promotions/analytics')}
-                  style={{ 
+                  style={{
                     borderRadius: '6px',
                     fontWeight: 'bold'
                   }}
@@ -352,8 +352,8 @@ const PromotionDashboard = () => {
         }
       >
         {/* Tabs for promotion status */}
-        <Tabs 
-          activeKey={activeTab} 
+        <Tabs
+          activeKey={activeTab}
           onChange={setActiveTab}
           items={tabItems}
         />
@@ -361,16 +361,16 @@ const PromotionDashboard = () => {
         {/* Search and Filters */}
         <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
           <Col xs={24} sm={12} lg={8}>
-            <Input.Search 
-              placeholder="Search promotions..." 
-              prefix={<SearchOutlined />} 
+            <Input.Search
+              placeholder="Search promotions..."
+              prefix={<SearchOutlined />}
               allowClear
               style={{ width: '100%' }}
             />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Select 
-              placeholder="Filter by type" 
+            <Select
+              placeholder="Filter by type"
               style={{ width: '100%' }}
               allowClear
             >
@@ -382,8 +382,8 @@ const PromotionDashboard = () => {
             </Select>
           </Col>
           <Col xs={24} sm={24} lg={10}>
-            <RangePicker 
-              style={{ width: '100%' }} 
+            <RangePicker
+              style={{ width: '100%' }}
               placeholder={['Start Date', 'End Date']}
             />
           </Col>
@@ -396,12 +396,12 @@ const PromotionDashboard = () => {
             p => activeTab === 'all' || p.status === activeTab
           )}
           rowKey="id"
-          pagination={{ 
+          pagination={{
             pageSize: 10,
             showSizeChanger: true,
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
           }}
-          style={{ 
+          style={{
             background: '#fff',
             borderRadius: '8px',
             overflow: 'hidden'
