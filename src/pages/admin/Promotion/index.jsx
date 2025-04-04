@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
-import { 
-  Typography, 
-  Card, 
-  Tabs, 
-  Button, 
-  Row, 
-  Col, 
-  Table, 
-  Tag, 
-  Space, 
-  Input, 
+import {
+  Typography,
+  Card,
+  Tabs,
+  Button,
+  Row,
+  Col,
+  Table,
+  Tag,
+  Space,
+  Input,
   Select,
   DatePicker,
   Statistic,
@@ -17,10 +17,10 @@ import {
   message,
   Dropdown
 } from 'antd';
-import { 
-  PlusOutlined, 
-  SearchOutlined, 
-  EditOutlined, 
+import {
+  PlusOutlined,
+  SearchOutlined,
+  EditOutlined,
   DeleteOutlined,
   EyeOutlined,
   FilterOutlined,
@@ -36,9 +36,20 @@ import {
   LineChartOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import moment from 'moment'; // Thêm moment để định dạng ngày
+import moment from 'moment';
 import './Promotion.scss';
-import { getAllPromotions, deletePromotion } from '../../../services/promotionService'; // Thêm deletePromotion
+import {
+  getAllPromotions,
+  deletePromotion,
+  searchPromotions,
+  countUpcomingPromotions,
+  countActivePromotions
+} from '../../../services/promotionService';
+import {
+  getRevenueFromPromotions,
+  countOrdersWithPromotions
+} from '../../../services/orderService';
+import { currencyFormat } from '../../../utils/helper';
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -54,26 +65,70 @@ const PromotionDashboard = () => {
   const [totalItems, setTotalItems] = useState(0);
   const pageSize = 12;
 
+  const [activePromotionsCount, setActivePromotionsCount] = useState(0);
+  const [upcomingPromotionsCount, setUpcomingPromotionsCount] = useState(0);
+  const [ordersWithPromotionsCount, setOrdersWithPromotionsCount] = useState(0);
+  const [revenueFromPromotions, setRevenueFromPromotions] = useState(0);
+
+  const [searchParams, setSearchParams] = useState({
+    status: null,
+    type: null,
+    name: '',
+    startDate: null,
+    endDate: null,
+  });
+
+  // Fetch statistics khi component mount
   useEffect(() => {
-    const fetchPromotions = async () => {
-      setLoading(true);
+    const fetchStats = async () => {
       try {
-        const data = await getAllPromotions(currentPage, pageSize);
-        setPromotions(data.data.items);
-        setTotalItems(data.data.totalElements);
-        console.log('Promotions:', data.data);
+        const activeCount = await countActivePromotions();
+        setActivePromotionsCount(activeCount);
+
+        const upcomingCount = await countUpcomingPromotions();
+        setUpcomingPromotionsCount(upcomingCount);
+
+        const ordersCount = await countOrdersWithPromotions();
+        setOrdersWithPromotionsCount(ordersCount);
+
+        const revenue = await getRevenueFromPromotions();
+        setRevenueFromPromotions(revenue);
       } catch (error) {
-        message.error('Failed to load promotions');
-        console.error('Error fetching promotions:', error);
-      } finally {
-        setLoading(false);
+        message.error('Failed to load statistics');
+        console.error('Error fetching stats:', error);
       }
     };
+    fetchStats();
+  }, []);
+
+  // Hàm gọi API để lấy danh sách promotions
+  const fetchPromotions = async () => {
+    setLoading(true);
+    try {
+      const params = {
+        ...searchParams,
+        page: currentPage,
+        pageSize: pageSize,
+      };
+      console.log('Fetching with params:', params); // Debug params gửi lên API
+      const data = await searchPromotions(params);
+      setPromotions(data.data.items);
+      setTotalItems(data.data.totalElements);
+    } catch (error) {
+      message.error('Failed to search promotions');
+      console.error('Error searching promotions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Theo dõi các tham số thay đổi để gọi API (trừ name)
+  useEffect(() => {
     fetchPromotions();
-  }, [currentPage]);
+  }, [searchParams.type, searchParams.startDate, searchParams.endDate, searchParams.status, currentPage]);
 
   const getTypeInfo = (type) => {
-    switch (type.toLowerCase()) {
+    switch (type?.toLowerCase()) {
       case 'percentage':
         return { icon: <PercentageOutlined />, label: 'Percentage Discount' };
       case 'fixed':
@@ -82,8 +137,6 @@ const PromotionDashboard = () => {
         return { icon: <TagOutlined />, label: 'Buy X Get Y' };
       case 'gift':
         return { icon: <GiftOutlined />, label: 'Free Gift' };
-      case 'shipping':
-        return { icon: <TruckOutlined />, label: 'Free Shipping' };
       default:
         return { icon: <TagOutlined />, label: type || 'Unknown' };
     }
@@ -92,28 +145,28 @@ const PromotionDashboard = () => {
   const stats = [
     {
       title: 'Active Promotions',
-      value: promotions.filter(p => p.status.toLowerCase() === 'active').length,
+      value: activePromotionsCount,
       icon: <TagOutlined style={{ fontSize: 24, color: '#52c41a' }} />,
       color: '#f6ffed',
       borderColor: '#b7eb8f',
     },
     {
       title: 'Upcoming Promotions',
-      value: promotions.filter(p => p.status.toLowerCase() === 'upcoming').length,
+      value: upcomingPromotionsCount,
       icon: <FilterOutlined style={{ fontSize: 24, color: '#1890ff' }} />,
       color: '#e6f7ff',
       borderColor: '#91d5ff',
     },
     {
       title: 'Total Orders with Promotions',
-      value: 985, // Sample value
+      value: ordersWithPromotionsCount,
       icon: <BarChartOutlined style={{ fontSize: 24, color: '#722ed1' }} />,
       color: '#f9f0ff',
       borderColor: '#d3adf7',
     },
     {
       title: 'Revenue from Promotions',
-      value: '$23,503.00', // Sample value
+      value: currencyFormat(revenueFromPromotions),
       icon: <DollarOutlined style={{ fontSize: 24, color: '#fa8c16' }} />,
       color: '#fff7e6',
       borderColor: '#ffd591',
@@ -132,15 +185,22 @@ const PromotionDashboard = () => {
         try {
           await deletePromotion(id);
           message.success('Promotion deleted successfully');
-          const data = await getAllPromotions(currentPage, pageSize);
-          setPromotions(data.data.items);
-          setTotalItems(data.data.totalElements);
+          fetchPromotions(); // Gọi lại API để cập nhật danh sách
         } catch (error) {
           message.error('Failed to delete promotion');
           console.error('Error deleting promotion:', error);
         }
       },
     });
+  };
+
+  const handleTabChange = (key) => {
+    setActiveTab(key);
+    setSearchParams(prev => ({
+      ...prev,
+      status: key === 'all' ? null : key.toUpperCase(),
+    }));
+    setCurrentPage(1);
   };
 
   const columns = [
@@ -178,11 +238,11 @@ const PromotionDashboard = () => {
       key: 'status',
       render: (status) => {
         let color = 'green';
-        if (status.toLowerCase() === 'upcoming') color = 'blue';
-        else if (status.toLowerCase() === 'expired') color = 'gray';
+        if (status?.toLowerCase() === 'upcoming') color = 'blue';
+        else if (status?.toLowerCase() === 'expired') color = 'gray';
         return (
           <Tag color={color} style={{ textTransform: 'capitalize', fontWeight: 'bold', padding: '4px 8px' }}>
-            {status.toLowerCase()}
+            {status?.toLowerCase()}
           </Tag>
         );
       },
@@ -243,11 +303,11 @@ const PromotionDashboard = () => {
       <Row gutter={[16, 16]} className="stats-row">
         {stats.map((stat, index) => (
           <Col xs={24} sm={12} lg={6} key={index}>
-            <Card 
-              className="stat-card" 
+            <Card
+              className="stat-card"
               bordered={false}
-              style={{ 
-                backgroundColor: stat.color, 
+              style={{
+                backgroundColor: stat.color,
                 borderLeft: `4px solid ${stat.borderColor}`,
                 borderRadius: '8px',
                 boxShadow: '0 2px 8px rgba(0,0,0,0.09)'
@@ -264,10 +324,10 @@ const PromotionDashboard = () => {
         ))}
       </Row>
 
-      <Card 
+      <Card
         className="content-card"
-        style={{ 
-          marginTop: '16px', 
+        style={{
+          marginTop: '16px',
           borderRadius: '8px',
           boxShadow: '0 2px 8px rgba(0,0,0,0.09)'
         }}
@@ -278,33 +338,35 @@ const PromotionDashboard = () => {
             </Col>
             <Col>
               <Space>
-                <Dropdown menu={{
-                  items: [
-                    {
-                      key: "create",
-                      icon: <PlusOutlined />,
-                      label: "Create Promotion",
-                      onClick: () => navigate('/admin/promotions/create')
-                    },
-                    {
-                      key: "coupons",
-                      icon: <TagOutlined />,
-                      label: "Generate Coupons",
-                      onClick: () => navigate('/admin/promotions/coupons')
-                    },
-                    {
-                      key: "marketing",
-                      icon: <MailOutlined />,
-                      label: "Marketing Campaigns",
-                      onClick: () => navigate('/admin/promotions/marketing')
-                    }
-                  ]
-                }}>
+                <Dropdown
+                  menu={{
+                    items: [
+                      {
+                        key: 'create',
+                        icon: <PlusOutlined />,
+                        label: 'Create Promotion',
+                        onClick: () => navigate('/admin/promotions/create'),
+                      },
+                      {
+                        key: 'coupons',
+                        icon: <TagOutlined />,
+                        label: 'Generate Coupons',
+                        onClick: () => navigate('/admin/promotions/coupons'),
+                      },
+                      {
+                        key: 'marketing',
+                        icon: <MailOutlined />,
+                        label: 'Marketing Campaigns',
+                        onClick: () => navigate('/admin/promotions/marketing'),
+                      },
+                    ],
+                  }}
+                >
                   <Button type="primary" style={{ borderRadius: '6px', fontWeight: 'bold' }}>
                     Actions <DownOutlined />
                   </Button>
                 </Dropdown>
-                <Button 
+                <Button
                   icon={<LineChartOutlined />}
                   onClick={() => navigate('/admin/promotions/analytics')}
                   style={{ borderRadius: '6px', fontWeight: 'bold' }}
@@ -316,37 +378,57 @@ const PromotionDashboard = () => {
           </Row>
         }
       >
-        <Tabs 
-          activeKey={activeTab} 
-          onChange={setActiveTab}
-          items={tabItems}
-        />
+        <Tabs activeKey={activeTab} onChange={handleTabChange} items={tabItems} />
 
         <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
           <Col xs={24} sm={12} lg={8}>
-            <Input.Search 
-              placeholder="Search promotions..." 
-              prefix={<SearchOutlined />} 
+            <Input.Search
+              placeholder="Search promotions..."
+              prefix={<SearchOutlined />}
+              value={searchParams.name}
+              onChange={(e) =>
+                setSearchParams(prev => ({ ...prev, name: e.target.value }))
+              }
+              onSearch={() => {
+                setCurrentPage(1);
+                fetchPromotions();
+              }}
               allowClear
               style={{ width: '100%' }}
             />
           </Col>
           <Col xs={24} sm={12} lg={6}>
-            <Select 
-              placeholder="Filter by type" 
+            <Select
+              placeholder="Filter by type"
+              value={searchParams.type}
+              onChange={(value) => {
+                setSearchParams(prev => ({ ...prev, type: value }));
+                setCurrentPage(1);
+              }}
               style={{ width: '100%' }}
               allowClear
             >
-              <Option value="percentage">Percentage Discount</Option>
-              <Option value="fixed">Fixed Amount</Option>
-              <Option value="buyx">Buy X Get Y</Option>
-              <Option value="gift">Free Gift</Option>
-              <Option value="shipping">Free Shipping</Option>
+              <Option value="PERCENTAGE">Percentage Discount</Option>
+              <Option value="FIXED">Fixed Amount</Option>
+              <Option value="BUYX">Buy X Get Y</Option>
+              <Option value="GIFT">Free Gift</Option>
             </Select>
           </Col>
           <Col xs={24} sm={24} lg={10}>
-            <RangePicker 
-              style={{ width: '100%' }} 
+            <RangePicker
+              style={{ width: '100%' }}
+              value={[
+                searchParams.startDate ? moment(searchParams.startDate) : null,
+                searchParams.endDate ? moment(searchParams.endDate) : null,
+              ]}
+              onChange={(dates) => {
+                setSearchParams(prev => ({
+                  ...prev,
+                  startDate: dates ? dates[0].toISOString() : null,
+                  endDate: dates ? dates[1].toISOString() : null,
+                }));
+                setCurrentPage(1);
+              }}
               placeholder={['Start Date', 'End Date']}
             />
           </Col>
@@ -354,26 +436,24 @@ const PromotionDashboard = () => {
 
         <Table
           columns={columns}
-          dataSource={promotions.filter(
-            (p) => activeTab === 'all' || p.status.toLowerCase() === activeTab
-          )}
+          dataSource={promotions}
           rowKey="promotionID"
           loading={loading}
-          pagination={{ 
+          pagination={{
             current: currentPage,
             pageSize: pageSize,
             total: totalItems,
             onChange: (page) => setCurrentPage(page),
-            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
+            showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
           }}
-          style={{ 
+          style={{
             background: '#fff',
             borderRadius: '8px',
-            overflow: 'hidden'
+            overflow: 'hidden',
           }}
           onRow={(record) => ({
             onClick: () => navigate(`/admin/promotions/${record.promotionID}`),
-            style: { cursor: 'pointer' }
+            style: { cursor: 'pointer' },
           })}
         />
       </Card>

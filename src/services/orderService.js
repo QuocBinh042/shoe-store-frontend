@@ -135,3 +135,14 @@ export const getOrdersByYear = async (page = 1, pageSize = 12) => {
     const data = await fetchData(`orders/year?page=${page}&pageSize=${pageSize}`);
     return data;
 };
+
+export const getRevenueFromPromotions = async () => {
+    const data = await fetchData('orders/revenue/with-promotions');
+    return data.data;
+  };
+  
+  export const countOrdersWithPromotions = async () => {
+    const data = await fetchData('orders/count/with-promotions');
+    return data.data;
+  };
+  
