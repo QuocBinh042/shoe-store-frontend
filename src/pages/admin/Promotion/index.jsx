@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   Typography, 
   Card, 
@@ -29,13 +29,16 @@ import {
   GiftOutlined,
   DollarOutlined,
   PercentageOutlined,
+  TruckOutlined,
   ExclamationCircleOutlined,
   DownOutlined,
   MailOutlined,
   LineChartOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import moment from 'moment'; // Thêm moment để định dạng ngày
 import './Promotion.scss';
+import { getAllPromotions, deletePromotion } from '../../../services/promotionService'; // Thêm deletePromotion
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -44,151 +47,129 @@ const { confirm } = Modal;
 
 const PromotionDashboard = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('active');
+  const [activeTab, setActiveTab] = useState('all');
+  const [promotions, setPromotions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const pageSize = 12;
 
-  // Mock data for promotions
-  const [promotions] = useState([
-    {
-      id: '1',
-      name: 'Summer Sale 2023',
-      type: 'percentage',
-      typeLabel: 'Percentage (10%)',
-      typeIcon: <PercentageOutlined />,
-      startDate: '2023-06-01',
-      endDate: '2023-08-31',
-      status: 'active',
-      conditions: 'All products',
-      usageCount: 328,
-      revenue: '$5,243.00',
-    },
-    {
-      id: '2',
-      name: 'New Customer Discount',
-      type: 'fixed',
-      typeLabel: 'Fixed Amount ($20)',
-      typeIcon: <DollarOutlined />,
-      startDate: '2023-05-15',
-      endDate: '2023-12-31',
-      status: 'active',
-      conditions: 'First purchase only',
-      usageCount: 145,
-      revenue: '$2,900.00',
-    },
-    {
-      id: '3',
-      name: 'Back to School',
-      type: 'buyx',
-      typeLabel: 'Buy 2 Get 1 Free',
-      typeIcon: <TagOutlined />,
-      startDate: '2023-08-01',
-      endDate: '2023-09-15',
-      status: 'upcoming',
-      conditions: 'School supplies category',
-      usageCount: 0,
-      revenue: '$0.00',
-    },
-    {
-      id: '4',
-      name: 'Holiday Gift',
-      type: 'gift',
-      typeLabel: 'Free Gift',
-      typeIcon: <GiftOutlined />,
-      startDate: '2023-12-01',
-      endDate: '2023-12-25',
-      status: 'upcoming',
-      conditions: 'Orders over $100',
-      usageCount: 0,
-      revenue: '$0.00',
-    },
-    {
-      id: '5',
-      name: 'Black Friday',
-      type: 'percentage',
-      typeLabel: 'Percentage (30%)',
-      typeIcon: <PercentageOutlined />,
-      startDate: '2022-11-24',
-      endDate: '2022-11-28',
-      status: 'expired',
-      conditions: 'All products',
-      usageCount: 512,
-      revenue: '$15,360.00',
-    },
-  ]);
+  useEffect(() => {
+    const fetchPromotions = async () => {
+      setLoading(true);
+      try {
+        const data = await getAllPromotions(currentPage, pageSize);
+        setPromotions(data.data.items);
+        setTotalItems(data.data.totalElements);
+        console.log('Promotions:', data.data);
+      } catch (error) {
+        message.error('Failed to load promotions');
+        console.error('Error fetching promotions:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPromotions();
+  }, [currentPage]);
+
+  const getTypeInfo = (type) => {
+    switch (type.toLowerCase()) {
+      case 'percentage':
+        return { icon: <PercentageOutlined />, label: 'Percentage Discount' };
+      case 'fixed':
+        return { icon: <DollarOutlined />, label: 'Fixed Amount' };
+      case 'buyx':
+        return { icon: <TagOutlined />, label: 'Buy X Get Y' };
+      case 'gift':
+        return { icon: <GiftOutlined />, label: 'Free Gift' };
+      case 'shipping':
+        return { icon: <TruckOutlined />, label: 'Free Shipping' };
+      default:
+        return { icon: <TagOutlined />, label: type || 'Unknown' };
+    }
+  };
 
   const stats = [
     {
       title: 'Active Promotions',
-      value: 2,
+      value: promotions.filter(p => p.status.toLowerCase() === 'active').length,
       icon: <TagOutlined style={{ fontSize: 24, color: '#52c41a' }} />,
       color: '#f6ffed',
       borderColor: '#b7eb8f',
     },
     {
       title: 'Upcoming Promotions',
-      value: 2,
+      value: promotions.filter(p => p.status.toLowerCase() === 'upcoming').length,
       icon: <FilterOutlined style={{ fontSize: 24, color: '#1890ff' }} />,
       color: '#e6f7ff',
       borderColor: '#91d5ff',
     },
     {
       title: 'Total Orders with Promotions',
-      value: 985,
+      value: 985, // Sample value
       icon: <BarChartOutlined style={{ fontSize: 24, color: '#722ed1' }} />,
       color: '#f9f0ff',
       borderColor: '#d3adf7',
     },
     {
       title: 'Revenue from Promotions',
-      value: '$23,503.00',
+      value: '$23,503.00', // Sample value
       icon: <DollarOutlined style={{ fontSize: 24, color: '#fa8c16' }} />,
       color: '#fff7e6',
       borderColor: '#ffd591',
     },
   ];
 
-  // Handle delete promotion
   const handleDeletePromotion = (id) => {
     confirm({
       title: 'Are you sure you want to delete this promotion?',
       icon: <ExclamationCircleOutlined />,
-      content: 'This action cannot be undone. All data related to this promotion will be permanently removed.',
+      content: 'This action cannot be undone. All related data will be permanently removed.',
       okText: 'Yes, Delete',
       okType: 'danger',
       cancelText: 'Cancel',
-      onOk() {
-        // Call API to delete promotion
-        console.log('Deleting promotion:', id);
-        // Simulating successful deletion
-        message.success('Promotion deleted successfully');
-        // In a real app, you would update the state or refetch the data
+      onOk: async () => {
+        try {
+          await deletePromotion(id);
+          message.success('Promotion deleted successfully');
+          const data = await getAllPromotions(currentPage, pageSize);
+          setPromotions(data.data.items);
+          setTotalItems(data.data.totalElements);
+        } catch (error) {
+          message.error('Failed to delete promotion');
+          console.error('Error deleting promotion:', error);
+        }
       },
     });
   };
 
-  // Table columns configuration
   const columns = [
     {
-      title: 'Name',
+      title: 'Promotion Name',
       dataIndex: 'name',
       key: 'name',
       render: (text) => <Text strong>{text}</Text>,
     },
     {
       title: 'Type',
-      dataIndex: 'typeLabel',
       key: 'type',
-      render: (text, record) => (
-        <Space>
-          {record.typeIcon}
-          <Text>{text}</Text>
-        </Space>
-      ),
+      render: (_, record) => {
+        const { icon, label } = getTypeInfo(record.type);
+        return (
+          <Space>
+            {icon}
+            <Text>{label}</Text>
+          </Space>
+        );
+      },
     },
     {
       title: 'Date Range',
       key: 'dateRange',
       render: (_, record) => (
-        <Text>{`${record.startDate} to ${record.endDate}`}</Text>
+        <Text>
+          {moment(record.startDate).format('DD/MM/YYYY')} to {moment(record.endDate).format('DD/MM/YYYY')}
+        </Text>
       ),
     },
     {
@@ -197,29 +178,20 @@ const PromotionDashboard = () => {
       key: 'status',
       render: (status) => {
         let color = 'green';
-        if (status === 'upcoming') {
-          color = 'blue';
-        } else if (status === 'expired') {
-          color = 'gray';
-        }
+        if (status.toLowerCase() === 'upcoming') color = 'blue';
+        else if (status.toLowerCase() === 'expired') color = 'gray';
         return (
           <Tag color={color} style={{ textTransform: 'capitalize', fontWeight: 'bold', padding: '4px 8px' }}>
-            {status}
+            {status.toLowerCase()}
           </Tag>
         );
       },
     },
     {
-      title: 'Usage',
+      title: 'Usage Count',
       dataIndex: 'usageCount',
       key: 'usage',
-      render: (text) => <Text>{text}</Text>,
-    },
-    {
-      title: 'Revenue',
-      dataIndex: 'revenue',
-      key: 'revenue',
-      render: (text) => <Text strong>{text}</Text>,
+      render: (text) => <Text>{text || 0}</Text>,
     },
     {
       title: 'Actions',
@@ -230,8 +202,8 @@ const PromotionDashboard = () => {
             type="text"
             icon={<EyeOutlined />}
             onClick={(e) => {
-              e.stopPropagation(); // Prevent row click event
-              navigate(`/admin/promotions/${record.id}`);
+              e.stopPropagation();
+              navigate(`/admin/promotions/${record.promotionID}`);
             }}
             tooltip="View details"
           />
@@ -239,8 +211,8 @@ const PromotionDashboard = () => {
             type="text"
             icon={<EditOutlined />}
             onClick={(e) => {
-              e.stopPropagation(); // Prevent row click event
-              navigate(`/admin/promotions/${record.id}/edit`);
+              e.stopPropagation();
+              navigate(`/admin/promotions/${record.promotionID}/edit`);
             }}
             tooltip="Edit promotion"
           />
@@ -249,8 +221,8 @@ const PromotionDashboard = () => {
             danger
             icon={<DeleteOutlined />}
             onClick={(e) => {
-              e.stopPropagation(); // Prevent row click event
-              handleDeletePromotion(record.id);
+              e.stopPropagation();
+              handleDeletePromotion(record.promotionID);
             }}
             tooltip="Delete promotion"
           />
@@ -259,17 +231,15 @@ const PromotionDashboard = () => {
     },
   ];
 
-  // Define items for Tabs component
   const tabItems = [
     { key: 'active', label: 'Active Promotions' },
     { key: 'upcoming', label: 'Upcoming Promotions' },
     { key: 'expired', label: 'Expired Promotions' },
-    { key: 'all', label: 'All Promotions' }
+    { key: 'all', label: 'All Promotions' },
   ];
 
   return (
     <div className="promotion-dashboard">
-      {/* Stats Cards */}
       <Row gutter={[16, 16]} className="stats-row">
         {stats.map((stat, index) => (
           <Col xs={24} sm={12} lg={6} key={index}>
@@ -294,7 +264,6 @@ const PromotionDashboard = () => {
         ))}
       </Row>
 
-      {/* Main Content Card */}
       <Card 
         className="content-card"
         style={{ 
@@ -335,14 +304,10 @@ const PromotionDashboard = () => {
                     Actions <DownOutlined />
                   </Button>
                 </Dropdown>
-
                 <Button 
                   icon={<LineChartOutlined />}
                   onClick={() => navigate('/admin/promotions/analytics')}
-                  style={{ 
-                    borderRadius: '6px',
-                    fontWeight: 'bold'
-                  }}
+                  style={{ borderRadius: '6px', fontWeight: 'bold' }}
                 >
                   Analytics
                 </Button>
@@ -351,14 +316,12 @@ const PromotionDashboard = () => {
           </Row>
         }
       >
-        {/* Tabs for promotion status */}
         <Tabs 
           activeKey={activeTab} 
           onChange={setActiveTab}
           items={tabItems}
         />
 
-        {/* Search and Filters */}
         <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
           <Col xs={24} sm={12} lg={8}>
             <Input.Search 
@@ -389,16 +352,18 @@ const PromotionDashboard = () => {
           </Col>
         </Row>
 
-        {/* Promotions Table */}
         <Table
           columns={columns}
           dataSource={promotions.filter(
-            p => activeTab === 'all' || p.status === activeTab
+            (p) => activeTab === 'all' || p.status.toLowerCase() === activeTab
           )}
-          rowKey="id"
+          rowKey="promotionID"
+          loading={loading}
           pagination={{ 
-            pageSize: 10,
-            showSizeChanger: true,
+            current: currentPage,
+            pageSize: pageSize,
+            total: totalItems,
+            onChange: (page) => setCurrentPage(page),
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
           }}
           style={{ 
@@ -407,7 +372,7 @@ const PromotionDashboard = () => {
             overflow: 'hidden'
           }}
           onRow={(record) => ({
-            onClick: () => navigate(`/admin/promotions/${record.id}`),
+            onClick: () => navigate(`/admin/promotions/${record.promotionID}`),
             style: { cursor: 'pointer' }
           })}
         />
