@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Card,
@@ -8,228 +8,359 @@ import {
   Input,
   Table,
   Tag,
-  Space,
   Typography,
   Select,
   DatePicker,
-  Statistic
+  Statistic,
+  message,
 } from 'antd';
 import {
-  CalendarOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   ShoppingCartOutlined,
   BarsOutlined,
-  MoreOutlined,
 } from '@ant-design/icons';
 import './Order.scss';
-const { Title, Text } = Typography;
+import {
+  getAllOrders,
+  getAllOrdersPaged,
+  getAllOrdersSorted,
+  getCanceledOrders,
+  getCanceledOrdersByDay,
+  getCanceledOrdersByMonth,
+  getCanceledOrdersByYear,
+  getCompletedOrders,
+  getCompletedOrdersByDay,
+  getCompletedOrdersByMonth,
+  getCompletedOrdersByYear,
+  getOrdersByDay,
+  getOrdersByMonth,
+  getOrdersByYear,
+  getTotalOrderAmount,
+  getTotalOrderAmountByDay,
+  getTotalOrderAmountByMonth,
+  getTotalOrderAmountByYear,
+  getTotalOrders,
+  getTotalOrdersByDay,
+  getTotalOrdersByMonth,
+  getTotalOrdersByYear,
+  searchOrders,
+} from '../../../services/orderService';
+import { currencyFormat } from '../../../utils/helper';
+
+const { Text } = Typography;
 const { RangePicker } = DatePicker;
+
+const getStatusColor = (status) => {
+  switch (status) {
+    case 'PENDING':
+      return 'gold';
+    case 'SHIPPED':
+      return 'blue';
+    case 'DELIVERED':
+      return 'green';
+    default:
+      return 'default';
+  }
+};
 
 const OrderDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const isDetailView = location.pathname.includes('/admin/orders/');
-  const [orders] = useState([
-    {
-      key: '1',
-      orderImage:
-        'https://storage.googleapis.com/a1aa/image/1pcuS5eH5RqoVrjS-9E8OoHorkbLvam_C79h0XBUTZo.jpg',
-      orderName: 'Shoe1',
-      orderId: '#573829',
-      customerAvatar:
-        'https://storage.googleapis.com/a1aa/image/tdcUgxMEAUB9k6oOVRSFlIB_4HiTLeA2VpbrbVgY23k.jpg',
-      customerName: 'Darrell Steward',
-      date: 'Apr 19, 08:01 AM',
-      total: '$1,099.00',
-      paymentStatus: 'Pending',
-      paymentStatusColor: 'gold',
-      items: '1 item',
-      deliveryMethod: 'Free Shipping',
-    },
-    {
-      key: '2',
-      orderImage:
-        'https://storage.googleapis.com/a1aa/image/K60jBYH69TnK4Q7ru6rFJUQi9kfTDRq5cp8H7gnDHSE.jpg',
-      orderName: 'Shoe2',
-      orderId: '#920947',
-      customerAvatar:
-        'https://storage.googleapis.com/a1aa/image/ANsMz3dcfcPAUSxYBh9nYsNylNDY90hrk2RKSCF7SUs.jpg',
-      customerName: 'Courtney Henry',
-      date: 'Apr 19, 09:15 AM',
-      total: '$2,198.00',
-      paymentStatus: 'Completed',
-      paymentStatusColor: 'green',
-      items: '2 items',
-      deliveryMethod: 'Free Shipping',
-    },
-  ]);
+
+  const [activeTimeTab, setActiveTimeTab] = useState('all');
+  const [activeStatusOption, setActiveStatusOption] = useState('ALL');
+  const [sortOption, setSortOption] = useState('newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+  const [totalOrdersCount, setTotalOrdersCount] = useState(0);
+
+  const [orders, setOrders] = useState([]);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalOrderAmount, setTotalOrderAmount] = useState(0);
+  const [completedOrders, setCompletedOrders] = useState(0);
+  const [canceledOrders, setCanceledOrders] = useState(0);
+
   const stats = [
     {
       title: 'Total Orders',
-      value: 2,
+      value: totalOrders,
       icon: <ShoppingCartOutlined style={{ fontSize: 24, color: '#52c41a' }} />,
       color: '#f6ffed',
       borderColor: '#b7eb8f',
     },
     {
-      title: 'Ordered Items',
-      value: 2,
+      title: 'Total Order Amount',
+      value: currencyFormat(totalOrderAmount),
       icon: <BarsOutlined style={{ fontSize: 24, color: '#1890ff' }} />,
       color: '#e6f7ff',
       borderColor: '#91d5ff',
     },
     {
       title: 'Completed Orders',
-      value: 985,
+      value: completedOrders,
       icon: <CheckCircleOutlined style={{ fontSize: 24, color: '#722ed1' }} />,
       color: '#f9f0ff',
       borderColor: '#d3adf7',
     },
     {
-      title: 'Failed Orders',
-      value: '$23,503.00',
+      title: 'Canceled Orders',
+      value: canceledOrders,
       icon: <CloseCircleOutlined style={{ fontSize: 24, color: '#fa8c16' }} />,
       color: '#fff7e6',
       borderColor: '#ffd591',
     },
   ];
+
+  useEffect(() => {
+    const fetchOrders = async () => {
+      try {
+        let orderData;
+        switch (activeTimeTab) {
+          case 'day':
+            orderData = await getOrdersByDay(currentPage, pageSize);
+            break;
+          case 'month':
+            orderData = await getOrdersByMonth(currentPage, pageSize);
+            break;
+          case 'year':
+            orderData = await getOrdersByYear(currentPage, pageSize);
+            break;
+          case 'all':
+          default:
+            orderData = await getAllOrdersPaged(currentPage, pageSize);
+            break;
+        }
+        if (orderData.statusCode === 200) {
+          const rows = orderData.data.items.map((order) => ({
+            key: order.orderId,
+            ...order,
+          }));
+          setOrders(rows);
+          setTotalOrdersCount(orderData.total || rows.length);
+        } else {
+          message.error('Không thể tải danh sách đơn hàng');
+        }
+      } catch (error) {
+        console.error('Lỗi khi tải danh sách đơn hàng:', error);
+        message.error('Lỗi khi tải danh sách đơn hàng');
+      }
+    };
+    fetchOrders();
+  }, [activeTimeTab, currentPage, pageSize]);
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        let total, amount, completed, canceled;
+        switch (activeTimeTab) {
+          case 'day':
+            [total, amount, completed, canceled] = await Promise.all([
+              getTotalOrdersByDay(),
+              getTotalOrderAmountByDay(),
+              getCompletedOrdersByDay(),
+              getCanceledOrdersByDay(),
+            ]);
+            break;
+          case 'month':
+            [total, amount, completed, canceled] = await Promise.all([
+              getTotalOrdersByMonth(),
+              getTotalOrderAmountByMonth(),
+              getCompletedOrdersByMonth(),
+              getCanceledOrdersByMonth(),
+            ]);
+            break;
+          case 'year':
+            [total, amount, completed, canceled] = await Promise.all([
+              getTotalOrdersByYear(),
+              getTotalOrderAmountByYear(),
+              getCompletedOrdersByYear(),
+              getCanceledOrdersByYear(),
+            ]);
+            break;
+          case 'all':
+            [total, amount, completed, canceled] = await Promise.all([
+              getTotalOrders(),
+              getTotalOrderAmount(),
+              getCompletedOrders(),
+              getCanceledOrders(),
+            ]);
+            break;
+          default:
+            total = amount = completed = canceled = 0;
+        }
+        setTotalOrders(total || 0);
+        setTotalOrderAmount(amount || 0);
+        setCompletedOrders(completed || 0);
+        setCanceledOrders(canceled || 0);
+      } catch (error) {
+        console.error('Lỗi khi tải số liệu thống kê:', error);
+        message.error('Lỗi khi tải số liệu thống kê');
+      }
+    };
+    fetchStats();
+  }, [activeTimeTab]);
+
   const columns = [
     {
-      title: 'Order',
-      dataIndex: 'orderName',
-      key: 'order',
-      render: (text, record) => (
-        <Space align="center">
-          <img
-            src={record.orderImage}
-            alt={record.orderName}
-            style={{ width: 48, height: 48, borderRadius: '50%' }}
-          />
-          <div>
-            <Text strong>{record.orderName}</Text>
-            <br />
-            <Text type="secondary" style={{ fontSize: 12 }}>
-              {record.orderId}
-            </Text>
-          </div>
-        </Space>
-      ),
+      title: 'Order ID',
+      dataIndex: 'orderID',
+      key: 'orderID',
+      render: (orderID) => `#${orderID}`,
     },
     {
       title: 'Customer',
-      dataIndex: 'customerName',
-      key: 'customer',
-      render: (text, record) => (
-        <Space align="center">
-          <img
-            src={record.customerAvatar}
-            alt={record.customerName}
-            style={{ width: 48, height: 48, borderRadius: '50%' }}
-          />
-          <Text>{record.customerName}</Text>
-        </Space>
-      ),
+      dataIndex: 'user',
+      key: 'user',
+      render: (user) => (user?.name ? user.name : 'N/A'),
     },
     {
       title: 'Date',
-      dataIndex: 'date',
-      key: 'date',
-      render: (text) => <Text>{text}</Text>,
+      dataIndex: 'orderDate',
+      key: 'orderDate',
     },
     {
       title: 'Total',
       dataIndex: 'total',
       key: 'total',
-      render: (text) => <Text strong>{text}</Text>,
+      render: (total) => <Text strong>{currencyFormat(total)}</Text>,
     },
     {
-      title: 'Payment Status',
-      dataIndex: 'paymentStatus',
-      key: 'paymentStatus',
-      render: (text, record) => (
-        <Tag color={record.paymentStatusColor} style={{ fontWeight: 'bold', padding: '4px 8px' }}>
-          {text}
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      render: (status) => (
+        <Tag color={getStatusColor(status)} style={{ fontWeight: 'bold', padding: '4px 8px' }}>
+          {status}
         </Tag>
       ),
     },
     {
-      title: 'Delivery Method',
-      dataIndex: 'deliveryMethod',
-      key: 'deliveryMethod',
-      render: (text) => <Text>{text}</Text>,
-    },
-    {
-      title: '',
-      key: 'action',
-      render: (_, record) => (
-        <button
-          style={{ background: 'none', border: 'none', cursor: 'pointer' }}
-          onClick={() => navigate(`/admin/orders/${record.orderId.replace('#', '')}`)}
-        >
-          <MoreOutlined style={{ color: 'gray' }} />
-        </button>
-      ),
+      title: 'Shipping Address',
+      dataIndex: 'shippingAddress',
+      key: 'shippingAddress',
+      render: (addr) => addr || 'N/A',
     },
   ];
-  const items = [
-    {
-      key: 'all',
-      label: 'All'
-    },
-    {
-      key: 'completed',
-      label: 'Completed'
-    },
-    {
-      key: 'unpaid',
-      label: 'Unpaid'
-    },
-    {
-      key: 'need-to-ship',
-      label: 'Need to ship'
-    },
-    {
-      key: 'cancellation',
-      label: 'Cancellation'
-    },
-    {
-      key: 'returns',
-      label: 'Returns'
-    }
-  ];
+
   if (isDetailView) {
     return <Outlet />;
   }
+
+  const timeTabs = [
+    { key: 'all', label: 'All' },
+    { key: 'day', label: 'Day' },
+    { key: 'month', label: 'Month' },
+    { key: 'year', label: 'Year' },
+  ];
+
+  const statusOption = [
+    { key: 'ALL', label: 'ALL' },
+    { key: 'PENDING', label: 'PENDING' },
+    { key: 'CONFIRMED', label: 'CONFIRMED' },
+    { key: 'SHIPPED', label: 'SHIPPED' },
+    { key: 'DELIVERED', label: 'DELIVERED' },
+    { key: 'CANCELED', label: 'CANCELED' },
+  ];
+
+  const sortOptions = [
+    { value: 'newest', label: 'Newest' },
+    { value: 'oldest', label: 'Oldest' },
+    { value: 'highestTotal', label: 'Highest Total' },
+    { value: 'lowestTotal', label: 'Lowest Total' },
+  ];
+
+  const handleTimeTabChange = (key) => {
+    setActiveTimeTab(key);
+    setCurrentPage(1);
+  };
+
+  const handleStatusOptionChange = (key) => {
+    setActiveStatusOption(key);
+    // Logic lọc theo trạng thái có thể được thêm vào đây nếu cần
+  };
+
+  const handleSearch = async (value) => {
+    try {
+      if (!value) {
+        const orderData = await getAllOrdersSorted(sortOption, currentPage, pageSize);
+        if (orderData && orderData.data) {
+          const rows = orderData.data.map((order) => ({
+            key: order.orderId,
+            ...order,
+          }));
+          setOrders(rows);
+        }
+        return;
+      }
+      const results = await searchOrders(value);
+      if (results) {
+        const rows = results.map((order) => ({
+          key: order.orderId,
+          ...order,
+        }));
+        setOrders(rows);
+      }
+    } catch (error) {
+      console.error('Lỗi khi tìm kiếm đơn hàng:', error);
+      message.error('Lỗi khi tìm kiếm đơn hàng');
+    }
+  };
+
+  const handleSortChange = (value) => {
+    setSortOption(value);
+    setCurrentPage(1);
+  };
+
   return (
-    <div className="order-dashboard" >
-      <Row gutter={[16, 16]} className="stats-row" style={{ marginBottom: '16px' }}>
-        {stats.map((stat, index) => (
-          <Col xs={24} sm={12} lg={6} key={index}>
-            <Card
-              className="stat-card"
-              bordered={false}
-              style={{
-                backgroundColor: stat.color,
-                borderLeft: `4px solid ${stat.borderColor}`,
-                borderRadius: '8px',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.09)'
-              }}
-            >
-              <Statistic
-                title={<Text strong>{stat.title}</Text>}
-                value={stat.value}
-                prefix={stat.icon}
-                valueStyle={{ color: '#262626', fontSize: '24px', fontWeight: 'bold' }}
-              />
-            </Card>
-          </Col>
-        ))}
-      </Row>
+    <div className="order-dashboard">
       <Card className="order-dashboard__content-card">
-        <div className="order-dashboard__tabs" >
-          <Tabs defaultActiveKey="all" items={items} />
-        </div>
+        <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+          <Col>
+            <Tabs
+              activeKey={activeTimeTab}
+              onChange={handleTimeTabChange}
+              items={timeTabs}
+            />
+          </Col>
+          <Col>
+            <Text type="secondary">
+              {activeTimeTab === 'day'
+                ? `Today: ${new Date().toLocaleDateString()}`
+                : activeTimeTab === 'month'
+                  ? `This Month: ${new Date().toLocaleString('default', { month: 'long' })} ${new Date().getFullYear()}`
+                  : activeTimeTab === 'year'
+                    ? `This Year: ${new Date().getFullYear()}`
+                    : activeTimeTab === 'all'
+                      ? 'All Time'
+                      : ''}
+            </Text>
+          </Col>
+        </Row>
+
+        <Row gutter={[16, 16]} className="stats-row" style={{ marginBottom: '16px' }}>
+          {stats.map((stat) => (
+            <Col xs={24} sm={12} lg={6} key={stat.title}>
+              <Card
+                className="stat-card"
+                bordered={false}
+                style={{
+                  backgroundColor: stat.color,
+                  borderLeft: `4px solid ${stat.borderColor}`,
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.09)',
+                }}
+              >
+                <Statistic
+                  title={<Text strong>{stat.title}</Text>}
+                  value={stat.value}
+                  prefix={stat.icon}
+                  valueStyle={{ color: '#262626', fontSize: '24px', fontWeight: 'bold' }}
+                />
+              </Card>
+            </Col>
+          ))}
+        </Row>
 
         <div style={{ padding: '0 0px' }}>
           <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
@@ -237,17 +368,31 @@ const OrderDashboard = () => {
               <Text strong style={{ display: 'block', marginBottom: 8 }}>
                 Search
               </Text>
-              <Input.Search placeholder="Search" allowClear />
+              <Input.Search
+                placeholder="Order ID or Customer Name"
+                allowClear
+                onSearch={handleSearch}
+              />
             </Col>
+
             <Col xs={24} sm={12} lg={6}>
               <Text strong style={{ display: 'block', marginBottom: 8 }}>
                 Sort
               </Text>
-              <Select placeholder="New Product" style={{ width: '100%' }}>
-                <Select.Option value="new">New Product</Select.Option>
-                <Select.Option value="popular">Popular Product</Select.Option>
+              <Select
+                placeholder="Sort Orders"
+                style={{ width: '100%' }}
+                value={sortOption}
+                onChange={handleSortChange}
+              >
+                {sortOptions.map((opt) => (
+                  <Select.Option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </Select.Option>
+                ))}
               </Select>
             </Col>
+
             <Col xs={24} sm={12} lg={6}>
               <Text strong style={{ display: 'block', marginBottom: 8 }}>
                 Date Range
@@ -258,22 +403,37 @@ const OrderDashboard = () => {
               <Text strong style={{ display: 'block', marginBottom: 8 }}>
                 Status
               </Text>
-              <Select defaultValue="all" style={{ width: '100%' }}>
-                <Select.Option value="all">All</Select.Option>
-                <Select.Option value="pending">Pending</Select.Option>
-                <Select.Option value="processing">Processing</Select.Option>
-                <Select.Option value="completed">Completed</Select.Option>
+              <Select
+                value={activeStatusOption}
+                onChange={handleStatusOptionChange}
+                style={{ width: '100%' }}
+              >
+                {statusOption.map((tab) => (
+                  <Select.Option key={tab.key} value={tab.key}>
+                    {tab.label}
+                  </Select.Option>
+                ))}
               </Select>
             </Col>
           </Row>
 
-          <Table 
-            columns={columns} 
-            dataSource={orders} 
+          <Table
+            onRow={(record) => ({
+              onClick: () => navigate(`/admin/orders/${record.orderId}`),
+              style: { cursor: 'pointer' },
+            })}
+            columns={columns}
+            dataSource={orders}
             pagination={{
-              pageSize: 10,
+              current: currentPage,
+              pageSize: pageSize,
+              total: totalOrdersCount,
+              onChange: (page, size) => {
+                setCurrentPage(page);
+                setPageSize(size);
+              },
               showSizeChanger: true,
-              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`
+              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
             }}
           />
         </div>
@@ -282,4 +442,4 @@ const OrderDashboard = () => {
   );
 };
 
-export default OrderDashboard;  
+export default OrderDashboard;
