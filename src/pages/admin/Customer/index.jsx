@@ -185,11 +185,11 @@ const Customer = () => {
               style={{ width: '100%' }}
             />
           </Col>
-          <Col>
+          {/* <Col>
             <Button style={{ border: '1px solid #d9d9d9' }} icon={<DownloadOutlined />}>
               Export
             </Button>
-          </Col>
+          </Col> */}
           <Col>
             <Button type="primary" onClick={() => { setModalMode('add'); setShowModal(true); }}>
               + Add Customer
