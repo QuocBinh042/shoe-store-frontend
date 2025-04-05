@@ -22,6 +22,7 @@ export const getPromotionById = async (id) => {
 
 export const createPromotion = async (promotionDTO) => {
   const data = await postData(`promotions`, promotionDTO);
+  console.log(data)
   return data;
 };
 
