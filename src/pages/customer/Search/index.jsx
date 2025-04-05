@@ -19,7 +19,7 @@ const Search = () => {
     sizes: [],
     priceRange: null,
     sortBy: null,
-    keyword: "", // Thêm từ khóa tìm kiếm vào filters
+    keyword: "", 
   });
 
   const [currentPage, setCurrentPage] = useState(1);
