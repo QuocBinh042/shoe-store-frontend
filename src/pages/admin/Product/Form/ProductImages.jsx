@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Card, Row, Col, Upload, message, Modal, Button } from 'antd';
 import { UploadOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
-import { uploadImage } from '../../../../services/uploadService';
 import CloudinaryImage from '../../../../utils/cloudinaryImage';
 
 const ProductImages = ({
@@ -9,7 +8,6 @@ const ProductImages = ({
   onImagesUpdate,
   maxImages = 8
 }) => {
-  // Lưu mảng đối tượng { file, url }
   const [images, setImages] = useState(
     product?.imageURL ? product.imageURL.map(url => ({ url })) : []
   );
@@ -73,7 +71,6 @@ const ProductImages = ({
     </div>
   );
 
-  // Nếu imageObj.url bắt đầu bằng "data:" thì hiển thị trực tiếp bằng <img>, nếu không dùng CloudinaryImage
   const renderImageWithActions = (imageObj, index) => (
     <div style={{ position: 'relative', width: 120, height: 120 }}>
       {imageObj.url.startsWith('data:') ? (
