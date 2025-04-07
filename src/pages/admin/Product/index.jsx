@@ -29,6 +29,7 @@ import {
   TrademarkCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate, useOutlet } from 'react-router-dom';
+import { STATUS_PRODUCT, STATUS_PRODUCT_OPTIONS } from '../../../constants/productConstant';
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -61,8 +62,10 @@ const ProductManager = () => {
   const statusOptions = useMemo(
     () => [
       { value: undefined, label: 'All Status' },
-      { value: 'Active', label: 'Active' },
-      { value: 'Inactive', label: 'Inactive' },
+      ...STATUS_PRODUCT.map((status) => ({
+        value: status.value,
+        label: status.label,
+      })),
     ],
     []
   );
@@ -219,10 +222,16 @@ const ProductManager = () => {
     }));
   }, [products, categories, brands, suppliers]);
 
-  const handleEditClick = (record) => {
-    navigate(`/admin/products/${record.productID}/edit`);
-  };
 
+  const handleEditClick = (record) => {
+    return {
+      onClick: () => {
+        navigate(`/admin/products/${record.productID}/edit`, {
+          state: { customer: record, refresh: true },
+        });
+      },
+    };
+  };
   const handleCreateClick = () => {
     navigate('/admin/products/create');
   };
@@ -270,7 +279,7 @@ const ProductManager = () => {
       dataIndex: 'productName',
       key: 'productName',
       render: (_, record) => (
-        <Space onClick={() => handleEditClick(record)} style={{ cursor: 'pointer' }}>
+        <Space>
           {record.imageURL && record.imageURL.length > 0 && (
             <img
               src={buildCloudinaryUrl(record.imageURL[0], { width: 40, height: 40, crop: 'fill' })}
@@ -308,13 +317,17 @@ const ProductManager = () => {
       key: 'status',
       align: 'center',
       render: (status) => {
-        let color = status === 'Inactive' ? 'red' : status === 'Scheduled' ? 'gold' : 'green';
-        return <Tag color={color} style={{ fontSize: 12, padding: '4px 8px' }}>{status}</Tag>;
+        const statusOption = STATUS_PRODUCT_OPTIONS.find(option => option.value === status);
+        const color = statusOption ? statusOption.color : 'default';     
+        return (
+          <Tag color={color} style={{ fontSize: 12, padding: '4px 8px' }}>
+            {statusOption ? statusOption.label : status} 
+          </Tag>
+        );
       },
-    },
+    }
   ];
 
-  // Component header
   const ProductListHeader = ({
     filters,
     handleFilterChange,
@@ -476,6 +489,7 @@ const ProductManager = () => {
           handleSearch={handleSearch}
         />
         <Table
+          onRow={handleEditClick}
           columns={columns}
           dataSource={enhancedProducts}
           pagination={{
@@ -485,6 +499,7 @@ const ProductManager = () => {
             showSizeChanger: false,
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
           }}
+          rowClassName="clickable-row"
           loading={loading}
           onChange={handleTableChange}
         />

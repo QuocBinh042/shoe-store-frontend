@@ -12,7 +12,7 @@ export const getPromotionByProduct = async (id) => {
 
 export const getAllPromotions = async (page = 1, size = 12) => {
   const data = await fetchData(`promotions?page=${page}&size=${size}`);
-  return data; 
+  return data;
 };
 
 export const getPromotionById = async (id) => {
@@ -57,5 +57,15 @@ export const countUpcomingPromotions = async () => {
 
 export const countActivePromotions = async () => {
   const data = await fetchData(`promotions/count/active`);
+  return data.data;
+};
+
+export const getAppliedPromotionsForProduct = async (productId) => {
+  const data = await fetchData(`promotions/applied/${productId}`);
+  return data.data;
+};
+
+export const getDiscountedPrice = async (productId) => {
+  const data = await fetchData(`promotions/final-price/${productId}`);
   return data.data;
 };
