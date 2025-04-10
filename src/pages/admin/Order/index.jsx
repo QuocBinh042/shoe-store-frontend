@@ -22,7 +22,6 @@ import {
 } from '@ant-design/icons';
 import './Order.scss';
 import {
-  getAllOrders,
   getAllOrdersPaged,
   getAllOrdersSorted,
   getCanceledOrders,
@@ -47,23 +46,10 @@ import {
   searchOrders,
 } from '../../../services/orderService';
 import { currencyFormat } from '../../../utils/helper';
+import { getStatusColor, STATUS_OPTION } from '../../../constants/orderConstant';
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case 'PENDING':
-      return 'gold';
-    case 'SHIPPED':
-      return 'blue';
-    case 'DELIVERED':
-      return 'green';
-    default:
-      return 'default';
-  }
-};
-
 const OrderDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -134,7 +120,7 @@ const OrderDashboard = () => {
         }
         if (orderData.statusCode === 200) {
           const rows = orderData.data.items.map((order) => ({
-            key: order.orderId,
+            key: order.orderID,
             ...order,
           }));
           setOrders(rows);
@@ -254,14 +240,6 @@ const OrderDashboard = () => {
     { key: 'year', label: 'Year' },
   ];
 
-  const statusOption = [
-    { key: 'ALL', label: 'ALL' },
-    { key: 'PENDING', label: 'PENDING' },
-    { key: 'CONFIRMED', label: 'CONFIRMED' },
-    { key: 'SHIPPED', label: 'SHIPPED' },
-    { key: 'DELIVERED', label: 'DELIVERED' },
-    { key: 'CANCELED', label: 'CANCELED' },
-  ];
 
   const sortOptions = [
     { value: 'newest', label: 'Newest' },
@@ -277,7 +255,6 @@ const OrderDashboard = () => {
 
   const handleStatusOptionChange = (key) => {
     setActiveStatusOption(key);
-    // Logic lọc theo trạng thái có thể được thêm vào đây nếu cần
   };
 
   const handleSearch = async (value) => {
@@ -286,7 +263,7 @@ const OrderDashboard = () => {
         const orderData = await getAllOrdersSorted(sortOption, currentPage, pageSize);
         if (orderData && orderData.data) {
           const rows = orderData.data.map((order) => ({
-            key: order.orderId,
+            key: order.orderID,
             ...order,
           }));
           setOrders(rows);
@@ -296,7 +273,7 @@ const OrderDashboard = () => {
       const results = await searchOrders(value);
       if (results) {
         const rows = results.map((order) => ({
-          key: order.orderId,
+          key: order.orderID,
           ...order,
         }));
         setOrders(rows);
@@ -408,7 +385,7 @@ const OrderDashboard = () => {
                 onChange={handleStatusOptionChange}
                 style={{ width: '100%' }}
               >
-                {statusOption.map((tab) => (
+                {STATUS_OPTION.map((tab) => (
                   <Select.Option key={tab.key} value={tab.key}>
                     {tab.label}
                   </Select.Option>
@@ -419,7 +396,7 @@ const OrderDashboard = () => {
 
           <Table
             onRow={(record) => ({
-              onClick: () => navigate(`/admin/orders/${record.orderId}`),
+              onClick: () => navigate(`/admin/orders/${record.orderID}`),
               style: { cursor: 'pointer' },
             })}
             columns={columns}

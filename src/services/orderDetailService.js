@@ -12,3 +12,8 @@ export const fetchOrderDetailByOrder = async (id) => {
     const data = await fetchData(`order-details/by-order-id/${id}`);
     return data.data;
 };
+
+export const getOrderDetailByOrder = async (orderId) => {
+    const data = await fetchData(`order-details/order/${orderId}/details`);
+    return data;
+};

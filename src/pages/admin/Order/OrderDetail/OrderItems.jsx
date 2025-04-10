@@ -1,130 +1,154 @@
 import React from 'react';
-import { Row, Col, Card, Table, Typography, Space, Checkbox, Divider } from 'antd';
+import { Row, Col, Table, Typography, Space, Divider, Button } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
+import CloudinaryImage from '../../../../utils/cloudinaryImage';
 
 const { Title, Text } = Typography;
 
-const OrderItems = ({ items, subtotal, discount, tax, total }) => {
+const OrderItems = ({ items, subtotal, discount, feeShip, total, onEditItem }) => {
   const columns = [
     {
-      title: '',
-      dataIndex: 'checkbox',
-      key: 'checkbox',
-      width: 50,
-      render: () => <Checkbox />,
+      title: 'PRODUCT',
+      dataIndex: 'productImage',
+      key: 'productImage',
+      render: (_, record) => (
+        <CloudinaryImage
+          publicId={record.productImage}
+          alt="product"
+          options={{ width: 100, height: 60, crop: 'fill' }}
+          style={{
+            borderRadius: 8,
+            objectFit: 'cover',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
+          }}
+        />
+      ),
     },
     {
-      title: 'PRODUCTS',
-      dataIndex: 'productName',
-      key: 'productName',
-      render: (_, record) => (
-        <Space size={12}>
-          <img
-            src={record.productImage}
-            alt={record.productName}
-            style={{ width: 48, height: 48, borderRadius: 6, objectFit: 'cover' }}
+      title: 'COLOR',
+      dataIndex: 'color',
+      key: 'color',
+      align: 'center',
+      render: (color) => (
+        <Space size={6} align="center">
+          <span
+            style={{
+              display: 'inline-block',
+              width: 14,
+              height: 14,
+              borderRadius: '50%',
+              backgroundColor: color,
+              border: '1px solid #ccc',
+            }}
           />
-          <div>
-            <Text strong style={{ fontSize: 15 }}>{record.productName}</Text>
-            <br />
-            <Text type="secondary" style={{ fontSize: 13 }}>
-              {record.productDesc}
-            </Text>
-          </div>
+          <Text>{color}</Text>
         </Space>
       ),
+    },
+    {
+      title: 'SIZE',
+      dataIndex: 'size',
+      key: 'size',
+      align: 'center',
+      render: (size) => <Text>{size.replace('SIZE_', '')}</Text>,
     },
     {
       title: 'PRICE',
       dataIndex: 'price',
       key: 'price',
-      render: (text) => <Text strong style={{ fontSize: 14 }}>{text}</Text>,
+      align: 'center',
+      render: (text) => <Text>{text}</Text>,
     },
     {
       title: 'QTY',
       dataIndex: 'qty',
       key: 'qty',
-      render: (text) => <Text strong style={{ fontSize: 14 }}>{text}</Text>,
+      align: 'center',
+      render: (text) => <Text>{text}</Text>,
     },
     {
       title: 'TOTAL',
       dataIndex: 'total',
       key: 'total',
-      render: (text) => <Text strong style={{ fontSize: 14, color: '#1890ff' }}>{text}</Text>,
+      align: 'center',
+      render: (text) => (
+        <Text strong style={{ color: '#1677ff' }}>{text}</Text>
+      ),
+    },
+    {
+      title: 'ACTION',
+      key: 'action',
+      align: 'center',
+      render: (_, record) => (
+        <Button
+          type="link"
+          size="small"
+          icon={<EditOutlined />}
+          onClick={() => onEditItem(record)}
+        >
+          Edit
+        </Button>
+      ),
     },
   ];
 
   return (
-    <Card
+    <div
       style={{
-        background: '#ffffff',
-        borderRadius: 8,
-        height: '100%',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
+        background: '#fff',
+        borderRadius: 12,
+        padding: 24,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+        border: '1px solid #f0f0f0',
+        marginBottom: 24,
       }}
     >
-      <Row justify="space-between" align="middle">
+      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
-          <Title level={4} style={{ margin: 0, fontSize: 18 }}>Order Details</Title>
-        </Col>
-        <Col>
-          <a href="#" style={{ color: '#1890ff', display: 'flex', alignItems: 'center' }}>
-            <EditOutlined style={{ marginRight: 6 }} /> Edit
-          </a>
+          <Title level={4} style={{ margin: 0 }}>
+            🧾 Order Items
+          </Title>
         </Col>
       </Row>
-      
+
       <Table
         columns={columns}
         dataSource={items}
         pagination={false}
-        bordered
-        style={{ marginTop: 20 }}
         rowKey="key"
         size="middle"
+        bordered
+        scroll={{ x: '100%' }}
+        style={{ marginBottom: 24 }}
       />
-      
-      <Divider style={{ margin: '20px 0 16px' }} />
-      
+
+      <Divider style={{ margin: '24px 0 16px' }} />
+
       <Row justify="end">
-        <Col span={12} md={8} lg={7}>
-          <div style={{ textAlign: 'right' }}>
-            <Space direction="vertical" size={4} style={{ width: '100%' }}>
-              <Row justify="space-between">
-                <Col>
-                  <Text style={{ fontSize: 14 }}>Subtotal:</Text>
-                </Col>
-                <Col>
-                  <Text strong style={{ fontSize: 14 }}>{subtotal}</Text>
-                </Col>
-              </Row>
-              
-              <Row justify="space-between">
-                <Col>
-                  <Text style={{ fontSize: 14 }}>Discount:</Text>
-                </Col>
-                <Col>
-                  <Text strong style={{ fontSize: 14 }}>{discount}</Text>
-                </Col>
-              </Row>
-              
-              
-              <Divider style={{ margin: '12px 0' }} />
-              
-              <Row justify="space-between" align="middle">
-                <Col>
-                  <Text style={{ fontSize: 16 }}>Total:</Text>
-                </Col>
-                <Col>
-                  <Text strong style={{ fontSize: 18, color: '#1890ff' }}>{total}</Text>
-                </Col>
-              </Row>
-            </Space>
-          </div>
+        <Col xs={24} sm={14} md={10} lg={8}>
+          <Space direction="vertical" size={12} style={{ width: '100%' }}>
+            <Row justify="space-between">
+              <Text>Subtotal:</Text>
+              <Text strong>{subtotal}</Text>
+            </Row>
+            <Row justify="space-between">
+              <Text>FeeShip:</Text>
+              <Text strong>{feeShip}</Text>
+            </Row>
+            <Row justify="space-between">
+              <Text>Discount:</Text>
+              <Text strong>{discount}</Text>
+            </Row>
+            <Divider style={{ margin: '12px 0' }} />
+            <Row justify="space-between">
+              <Text style={{ fontSize: 15 }}>Total:</Text>
+              <Text strong style={{ fontSize: 18, color: '#1677ff' }}>{total}</Text>
+            </Row>
+          </Space>
         </Col>
       </Row>
-    </Card>
+    </div>
   );
 };
 
-export default OrderItems; 
+export default OrderItems;
