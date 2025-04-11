@@ -1,4 +1,5 @@
-import React from 'react';
+// OrderDetail.jsx
+import React, { useState, useEffect } from 'react';
 import { Card, Row, Col } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import OrderHeader from './OrderHeader';
@@ -6,119 +7,97 @@ import OrderItems from './OrderItems';
 import CustomerInfo from './CustomerInfo';
 import ShippingInfo from './ShippingInfo';
 import OrderTimeline from './OrderTimeline';
+import { ORDER_STATUSES, ORDER_STATUS_DETAILS, getStatusColor } from '../../../../constants/orderConstant';
+import { SIZE_OPTIONS, COLOR_OPTIONS } from '../../../../constants/productConstant';
+import { currencyFormat } from '../../../../utils/helper';
+import { getOrderDetailByOrder } from '../../../../services/orderDetailService';
+import EditCustomerModal from '../Modals/EditCustomerModal';
+import EditShippingModal from '../Modals/EditShippingModal';
+import EditOrderItemModal from '../Modals/EditOrderItemModal';
 
 const OrderDetail = () => {
-  const { id: orderId } = useParams();
+  const { id: orderID } = useParams();
+  const [orderDetails, setOrderDetails] = useState([]);
   const navigate = useNavigate();
+  const [isCustomerModalOpen, setCustomerModalOpen] = useState(false);
+  const [editShippingModalOpen, setEditShippingModalOpen] = useState(false);
+  const [editItemModalOpen, setEditItemModalOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
 
-  // Mock data - in a real app, you would fetch this from an API based on orderId
-  const orderData = {
-    orderNumber: '32543',
-    date: 'Aug 17, 2025, 5:48 (ET)',
-    status: [
-      { label: 'Paid', color: 'green' },
-      { label: 'Ready to Pickup', color: 'blue' }
-    ],
-    items: [
-      {
-        key: '1',
-        productImage:
-          'https://storage.googleapis.com/a1aa/image/lW0QpQxTCiKiMlyLmHBVnVSvg2QkI9X3DB5FE9XSx6U.jpg',
-        productName: 'Wooden Chair',
-        productDesc: 'Material: Wooden',
-        price: '$841',
-        qty: 2,
-        total: '$1682',
-      },
-      {
-        key: '2',
-        productImage:
-          'https://storage.googleapis.com/a1aa/image/ALCCmlRvSgCVv4TNt9nOf0w22F91j-7Eyp8p1sFZXuU.jpg',
-        productName: 'Oneplus 10',
-        productDesc: 'Storage:128gb',
-        price: '$896',
-        qty: 3,
-        total: '$2688',
-      },
-    ],
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await getOrderDetailByOrder(orderID);
+        if (response.statusCode === 200) {
+          setOrderDetails(response.data);
+        } else {
+          console.error('Failed to fetch order detail:', response);
+        }
+      } catch (error) {
+        console.error('Error fetching order detail:', error);
+      }
+    };
+    fetchData();
+  }, [orderID]);
+
+  if (!orderDetails.length) return null;
+
+  const order = orderDetails[0].order;
+  const user = order?.user;
+  const isPending = order.status === 'PENDING';
+
+  const buildTimeline = (order) => {
+    const currentIndex = ORDER_STATUSES.indexOf(order.status);
+    if (currentIndex === -1) return [];
+
+    return ORDER_STATUSES.slice(0, currentIndex + 1).map((status, index) => ({
+      time: index === 0 ? order.orderDate : '',
+      title: ORDER_STATUS_DETAILS[status].title,
+      description: ORDER_STATUS_DETAILS[status].description,
+    }));
+  };
+
+  const mappedOrderData = {
+    orderNumber: order.code,
+    date: order.orderDate,
+    status: [{ label: order.status, color: getStatusColor(order.status) }],
+    items: orderDetails.map((item, idx) => ({
+      key: idx.toString(),
+      productImage: item.productDetail?.image || 'https://dummyimage.com/100x100/cccccc/000000&text=No+Image',
+      color: item.productDetail?.color || '',
+      size: item.productDetail?.size || '',
+      price: currencyFormat(item.price),
+      qty: item.quantity,
+      total: currencyFormat((item.price || 0) * (item.quantity || 0)),
+    })),
     totals: {
-      subtotal: '$5000.25',
-      discount: '$0.00',
-      total: '$5000.25'
+      subtotal: currencyFormat(order.total),
+      feeShip: currencyFormat(order.feeShip),
+      discount: currencyFormat(order.discount),
+      total: currencyFormat(order.total),
     },
     customer: {
-      customerAvatar: 'https://storage.googleapis.com/a1aa/image/qxDiJ96drN_4I6CjKzDsawHUBzj_lYUqmTQ2n2uAFC4.jpg',
-      customerName: 'Shamus Tuttle',
-      customerId: '58909',
-      email: 'Shamus889@yahoo.com',
-      phone: '+1 (609) 972-22-22'
+      customerAvatar: 'https://via.placeholder.com/150',
+      customerName: user?.name || '',
+      customerId: user?.userID || '',
+      email: user?.email || '',
+      phone: user?.phoneNumber || '',
     },
     shipping: {
-      address: {
-        line1: '2715 Ash Dr',
-        line2: 'Suite #3',
-        city: 'San Jose',
-        state: 'CA',
-        zip: '95148',
-        country: 'United States'
-      },
-      method: 'Express Delivery - Free',
-      trackingNumber: 'SH38900178'
+      address: order.shippingAddress,
+      method: order.feeShip === 0 ? 'Free Shipping' : 'Standard Shipping',
+      trackingNumber: order.code,
     },
-    billing: {
-      address: {
-        line1: '2715 Ash Dr',
-        line2: 'Suite #3',
-        city: 'San Jose',
-        state: 'CA',
-        zip: '95148',
-        country: 'United States'
-      },
-      paymentMethod: 'Credit Card ****4242'
-    },
-    timeline: [
-      {
-        time: 'Tuesday 11:29 AM',
-        title: 'Order was placed (Order ID: #32543)',
-        description: 'Your order has been placed successfully',
-      },
-      {
-        time: 'Wednesday 11:29 AM',
-        title: 'Pick-up',
-        description: 'Pick-up scheduled with courier',
-      },
-      {
-        time: 'Thursday 11:29 AM',
-        title: 'Dispatched',
-        description: 'Item has been picked up by courier',
-      },
-      {
-        time: 'Saturday 15:20 AM',
-        title: 'Package arrived',
-        description: 'Package arrived at an Amazon facility, NY',
-      },
-      {
-        time: 'Today 14:12 PM',
-        title: 'Dispatched for delivery',
-        description: 'Package has left an Amazon facility, NY',
-      },
-      {
-        time: '',
-        title: 'Delivery',
-        description: 'Package will be delivered by tomorrow',
-      },
-    ]
+    timeline: buildTimeline(order),
   };
 
   const handleBack = () => {
     navigate('/admin/orders');
   };
 
-  const handleDelete = () => {
-    // Handle delete logic here
-    console.log('Deleting order:', orderId);
-    // After deletion, navigate back to orders list
-    navigate('/admin/orders');
+  const handleOrderAction = (nextStatus) => {
+    console.log('Update order to:', nextStatus);
+    // TODO: call update API here
   };
 
   return (
@@ -128,62 +107,84 @@ const OrderDetail = () => {
           borderRadius: 12,
           boxShadow: '0 6px 16px rgba(0,0,0,0.12), 0 3px 6px rgba(0,0,0,0.08)',
           border: '1px solid #e8e8e8',
-          marginBottom: 24
+          marginBottom: 24,
         }}
       >
-        {/* Header Section */}
-        <OrderHeader 
-          orderNumber={orderData.orderNumber}
-          date={orderData.date}
-          status={orderData.status}
+        <OrderHeader
+          orderNumber={mappedOrderData.orderNumber}
+          date={mappedOrderData.date}
+          status={mappedOrderData.status}
           onBack={handleBack}
-          onDelete={handleDelete}
         />
 
-        {/* Two-column layout */}
         <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
-          {/* Left Column - Order Items */}
           <Col xs={24} lg={16}>
-            <OrderItems 
-              items={orderData.items}
-              subtotal={orderData.totals.subtotal}
-              discount={orderData.totals.discount}
-              tax={orderData.totals.tax}
-              total={orderData.totals.total}
+            <OrderItems
+              items={mappedOrderData.items}
+              subtotal={mappedOrderData.totals.subtotal}
+              discount={mappedOrderData.totals.discount}
+              feeShip={mappedOrderData.totals.feeShip}
+              total={mappedOrderData.totals.total}
+              onEditItem={(item) => {
+                setEditingItem(item);
+                setEditItemModalOpen(true);
+              }}
+              editable={isPending}
             />
           </Col>
-          
-          {/* Right Column - Customer & Shipping Info */}
+
           <Col xs={24} lg={8}>
-            <div className="customer-details-container">
-              {/* Customer Details */}
-              <CustomerInfo 
-                customerAvatar={orderData.customer.customerAvatar}
-                customerName={orderData.customer.customerName}
-                customerId={orderData.customer.customerId}
-                email={orderData.customer.email}
-                phone={orderData.customer.phone}
-              />
-              
-              {/* Shipping Address */}
-              <div style={{ marginTop: 20 }}>
-                <ShippingInfo 
-                  address={orderData.shipping.address}
-                  method={orderData.shipping.method}
-                  trackingNumber={orderData.shipping.trackingNumber}
-                />
-              </div>
-            </div>
+            <CustomerInfo {...mappedOrderData.customer} onEdit={() => setCustomerModalOpen(true)} editable={isPending} />
+            <ShippingInfo {...mappedOrderData.shipping} onEdit={() => setEditShippingModalOpen(true)} editable={isPending} />
           </Col>
         </Row>
 
-        {/* Order Timeline */}
         <Row style={{ marginTop: 24 }}>
           <Col span={24}>
-            <OrderTimeline items={orderData.timeline} />
+            <OrderTimeline
+              items={mappedOrderData.timeline}
+              currentStatus={order.status}
+              onAction={handleOrderAction}
+            />
           </Col>
         </Row>
       </Card>
+
+      <EditCustomerModal
+        open={isCustomerModalOpen}
+        onCancel={() => setCustomerModalOpen(false)}
+        onSubmit={(updated) => {
+          console.log('Updated customer:', updated);
+          setCustomerModalOpen(false);
+        }}
+        initialValues={{
+          name: mappedOrderData.customer.customerName,
+          email: mappedOrderData.customer.email,
+          phone: mappedOrderData.customer.phone,
+        }}
+      />
+
+      <EditShippingModal
+        open={editShippingModalOpen}
+        onCancel={() => setEditShippingModalOpen(false)}
+        onSubmit={(newShipping) => {
+          console.log('Shipping updated:', newShipping);
+          setEditShippingModalOpen(false);
+        }}
+        initialValues={mappedOrderData.shipping}
+      />
+
+      <EditOrderItemModal
+        open={editItemModalOpen}
+        onCancel={() => setEditItemModalOpen(false)}
+        onSubmit={(updatedItem) => {
+          console.log('Item updated:', updatedItem);
+          setEditItemModalOpen(false);
+        }}
+        initialValues={editingItem}
+        colorOptions={COLOR_OPTIONS.map(opt => opt.value)}
+        sizeOptions={SIZE_OPTIONS.map(opt => opt.value)}
+      />
     </div>
   );
 };

@@ -22,9 +22,7 @@ import {
 } from '@ant-design/icons';
 import './Order.scss';
 import {
-  getAllOrders,
   getAllOrdersPaged,
-  getAllOrdersSorted,
   getCanceledOrders,
   getCanceledOrdersByDay,
   getCanceledOrdersByMonth,
@@ -44,26 +42,13 @@ import {
   getTotalOrdersByDay,
   getTotalOrdersByMonth,
   getTotalOrdersByYear,
-  searchOrders,
+  filterOrders,
 } from '../../../services/orderService';
 import { currencyFormat } from '../../../utils/helper';
+import { getStatusColor, STATUS_OPTION } from '../../../constants/orderConstant';
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
-
-const getStatusColor = (status) => {
-  switch (status) {
-    case 'PENDING':
-      return 'gold';
-    case 'SHIPPED':
-      return 'blue';
-    case 'DELIVERED':
-      return 'green';
-    default:
-      return 'default';
-  }
-};
-
 const OrderDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -75,12 +60,15 @@ const OrderDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(12);
   const [totalOrdersCount, setTotalOrdersCount] = useState(0);
+  const [dateRange, setDateRange] = useState([null, null]);
 
   const [orders, setOrders] = useState([]);
   const [totalOrders, setTotalOrders] = useState(0);
   const [totalOrderAmount, setTotalOrderAmount] = useState(0);
   const [completedOrders, setCompletedOrders] = useState(0);
   const [canceledOrders, setCanceledOrders] = useState(0);
+  const [isActiveSearch, setIsActiveSearch] = useState(false);
+  const [searchText, setSearchText] = useState('');
 
   const stats = [
     {
@@ -113,9 +101,36 @@ const OrderDashboard = () => {
     },
   ];
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
+  const fetchOrders = async () => {
+    try {
+      if (isActiveSearch || dateRange[0] || activeStatusOption !== 'ALL') {
+        const from = dateRange[0] ? dateRange[0].format('YYYY-MM-DD') : null;
+        const to = dateRange[1] ? dateRange[1].format('YYYY-MM-DD') : null;
+        const status = activeStatusOption !== 'ALL' ? activeStatusOption : null;
+
+        const result = await filterOrders({
+          mode: activeTimeTab,
+          status: status,
+          q: searchText,
+          from: from,
+          to: to,
+          sort: sortOption,
+          page: currentPage,
+          pageSize: pageSize,
+        });
+        console.log('Filtered Orders:', result);
+        console.log(activeTimeTab, status, searchText, from, to, sortOption);
+        if (result && result.data.items) {
+          const rows = result.data.items.map((order) => ({
+            key: order.orderID,
+            ...order,
+          }));
+          setOrders(rows);
+          setTotalOrdersCount(result.total || rows.length);
+        } else {
+          message.error('Không thể tải danh sách đơn hàng');
+        }
+      } else {
         let orderData;
         switch (activeTimeTab) {
           case 'day':
@@ -134,7 +149,7 @@ const OrderDashboard = () => {
         }
         if (orderData.statusCode === 200) {
           const rows = orderData.data.items.map((order) => ({
-            key: order.orderId,
+            key: order.orderID,
             ...order,
           }));
           setOrders(rows);
@@ -142,13 +157,18 @@ const OrderDashboard = () => {
         } else {
           message.error('Không thể tải danh sách đơn hàng');
         }
-      } catch (error) {
-        console.error('Lỗi khi tải danh sách đơn hàng:', error);
-        message.error('Lỗi khi tải danh sách đơn hàng');
       }
-    };
+    } catch (error) {
+      console.error('Lỗi khi tải danh sách đơn hàng:', error);
+      message.error('Lỗi khi tải danh sách đơn hàng');
+    }
+  };
+
+  useEffect(() => {
     fetchOrders();
-  }, [activeTimeTab, currentPage, pageSize]);
+  }, [activeTimeTab, currentPage, pageSize, isActiveSearch, dateRange, activeStatusOption, sortOption]);
+
+  // Giữ nguyên useEffect cho các thống kê
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -203,10 +223,10 @@ const OrderDashboard = () => {
 
   const columns = [
     {
-      title: 'Order ID',
-      dataIndex: 'orderID',
-      key: 'orderID',
-      render: (orderID) => `#${orderID}`,
+      title: 'ID',
+      dataIndex: 'code',
+      key: 'code',
+      render: (code) => `#${code}`,
     },
     {
       title: 'Customer',
@@ -254,15 +274,6 @@ const OrderDashboard = () => {
     { key: 'year', label: 'Year' },
   ];
 
-  const statusOption = [
-    { key: 'ALL', label: 'ALL' },
-    { key: 'PENDING', label: 'PENDING' },
-    { key: 'CONFIRMED', label: 'CONFIRMED' },
-    { key: 'SHIPPED', label: 'SHIPPED' },
-    { key: 'DELIVERED', label: 'DELIVERED' },
-    { key: 'CANCELED', label: 'CANCELED' },
-  ];
-
   const sortOptions = [
     { value: 'newest', label: 'Newest' },
     { value: 'oldest', label: 'Oldest' },
@@ -277,38 +288,27 @@ const OrderDashboard = () => {
 
   const handleStatusOptionChange = (key) => {
     setActiveStatusOption(key);
-    // Logic lọc theo trạng thái có thể được thêm vào đây nếu cần
+    setCurrentPage(1);
   };
 
   const handleSearch = async (value) => {
-    try {
-      if (!value) {
-        const orderData = await getAllOrdersSorted(sortOption, currentPage, pageSize);
-        if (orderData && orderData.data) {
-          const rows = orderData.data.map((order) => ({
-            key: order.orderId,
-            ...order,
-          }));
-          setOrders(rows);
-        }
-        return;
-      }
-      const results = await searchOrders(value);
-      if (results) {
-        const rows = results.map((order) => ({
-          key: order.orderId,
-          ...order,
-        }));
-        setOrders(rows);
-      }
-    } catch (error) {
-      console.error('Lỗi khi tìm kiếm đơn hàng:', error);
-      message.error('Lỗi khi tìm kiếm đơn hàng');
+    setSearchText(value);
+    setCurrentPage(1);
+    
+    if (!value) {
+      setIsActiveSearch(false);
+    } else {
+      setIsActiveSearch(true);
     }
   };
 
   const handleSortChange = (value) => {
     setSortOption(value);
+    setCurrentPage(1);
+  };
+
+  const handleDateRangeChange = (dates) => {
+    setDateRange(dates);
     setCurrentPage(1);
   };
 
@@ -372,6 +372,8 @@ const OrderDashboard = () => {
                 placeholder="Order ID or Customer Name"
                 allowClear
                 onSearch={handleSearch}
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
               />
             </Col>
 
@@ -397,7 +399,11 @@ const OrderDashboard = () => {
               <Text strong style={{ display: 'block', marginBottom: 8 }}>
                 Date Range
               </Text>
-              <RangePicker style={{ width: '100%' }} />
+              <RangePicker 
+                style={{ width: '100%' }} 
+                value={dateRange}
+                onChange={handleDateRangeChange}
+              />
             </Col>
             <Col xs={24} sm={12} lg={6}>
               <Text strong style={{ display: 'block', marginBottom: 8 }}>
@@ -408,7 +414,7 @@ const OrderDashboard = () => {
                 onChange={handleStatusOptionChange}
                 style={{ width: '100%' }}
               >
-                {statusOption.map((tab) => (
+                {STATUS_OPTION.map((tab) => (
                   <Select.Option key={tab.key} value={tab.key}>
                     {tab.label}
                   </Select.Option>
@@ -419,7 +425,7 @@ const OrderDashboard = () => {
 
           <Table
             onRow={(record) => ({
-              onClick: () => navigate(`/admin/orders/${record.orderId}`),
+              onClick: () => navigate(`/admin/orders/${record.orderID}`),
               style: { cursor: 'pointer' },
             })}
             columns={columns}
