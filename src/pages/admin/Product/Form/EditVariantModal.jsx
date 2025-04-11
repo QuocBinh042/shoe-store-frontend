@@ -1,66 +1,175 @@
 import { useState, useEffect } from 'react';
-import { Modal, Form, Row, Col, Upload, Button, InputNumber, Select, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { Modal, Form, Row, Col, Upload, Button, InputNumber, Select, message, Space, Tag } from 'antd';
+import { PlusOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
+import { COLOR_OPTIONS, SIZE_OPTIONS, STATUS_PRODUCT_OPTIONS } from '../../../../constants/productConstant';
+import CloudinaryImage from '../../../../utils/cloudinaryImage';
+import { uploadImage } from '../../../../services/uploadService';
 
 const { Option } = Select;
 
 const EditVariantModal = ({ open, variant, onCancel, onFinish, productId }) => {
   const [form] = Form.useForm();
-  const [imageUrl, setImageUrl] = useState('');
-  const [imageFile, setImageFile] = useState(null);
+  const [image, setImage] = useState(null); 
+  const [previewVisible, setPreviewVisible] = useState(false);
+  const [isStatusWarning, setIsStatusWarning] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState(null);
+  const [originalStatus, setOriginalStatus] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (open) {
       form.resetFields();
       if (variant) {
+        const initialStatus = variant.status || 'AVAILABLE';
         form.setFieldsValue({
           size: variant.size.replace('SIZE_', ''),
           color: variant.color.toLowerCase(),
           stock: variant.stockQuantity || variant.stock || 0,
-          status: variant.status || 'Enabled',
+          status: initialStatus,
         });
-        setImageUrl(variant.image || '');
+        setImage(variant.image || null);
+        setOriginalStatus(initialStatus);
       } else {
         form.setFieldsValue({
           size: '',
           color: '',
           stock: 0,
-          status: 'Enabled',
+          status: 'AVAILABLE',
         });
-        setImageUrl('');
+        setImage(null);
+        setOriginalStatus('AVAILABLE');
       }
-      setImageFile(null);
+      setIsStatusWarning(false);
+      setPendingStatus(null);
     }
   }, [variant, form, open]);
 
-  const uploadProps = {
-    beforeUpload: (file) => {
-      const isImage = file.type.startsWith('image/');
-      if (!isImage) {
-        message.error('You can only upload image files!');
-        return Upload.LIST_IGNORE;
-      }
-      setImageFile(file);
-      const url = URL.createObjectURL(file);
-      setImageUrl(url);
-      return false;
-    },
-    showUploadList: false,
-    listType: 'picture-card',
+  const shouldWarn = (status, stock) => {
+    if (stock > 0 && (status === 'UNAVAILABLE' || status === 'DISCONTINUED')) {
+      return true;
+    }
+    return false;
+  };
+
+  const handleStatusChange = (value) => {
+    const stock = form.getFieldValue('stock');
+    if (shouldWarn(value, stock)) {
+      setIsStatusWarning(true);
+      setPendingStatus(value);
+    } else {
+      form.setFieldsValue({ status: value });
+      setIsStatusWarning(false);
+      setPendingStatus(null);
+    }
+  };
+
+  const handleConfirmWarning = () => {
+    form.setFieldsValue({ status: pendingStatus });
+    setIsStatusWarning(false);
+    setPendingStatus(null);
+  };
+
+  const handleCancelWarning = () => {
+    form.setFieldsValue({ status: originalStatus });
+    setIsStatusWarning(false);
+    setPendingStatus(null);
   };
 
   const handleVariantFinish = (values) => {
+    if (isStatusWarning) {
+      message.error('Please confirm or cancel the status change before submitting.');
+      return;
+    }
+
     const formattedValues = {
       ...(variant && { productDetailID: variant.productDetailID }),
       size: `SIZE_${values.size}`,
       color: values.color.toUpperCase(),
       stockQuantity: values.stock,
-      status: values.status || 'Enabled',
-      ...(imageFile && { imageFile }), // Nếu cần gửi file ảnh
+      status: values.status || 'AVAILABLE',
+      image, // Now a string (Cloudinary public_id or null)
     };
-    onFinish(formattedValues); // Trả dữ liệu về ProductForm
-    onCancel(); // Đóng modal
+
+    onFinish(formattedValues);
+    onCancel();
   };
+
+  const handleImageUpload = async (options) => {
+    const { file } = options;
+    if (!file.type.startsWith('image/')) {
+      message.error('You can only upload image files!');
+      return;
+    }
+
+    const isLt2M = file.size / 1024 / 1024 < 2;
+    if (!isLt2M) {
+      message.error('Image must be smaller than 2MB!');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const response = await uploadImage(file, productId);
+      const publicId = response.data.public_id; 
+      setImage(publicId);
+      message.success('Image uploaded successfully');
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      message.error('Failed to upload image');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImage(null);
+  };
+
+  const handlePreviewImage = () => {
+    setPreviewVisible(true);
+  };
+
+  const renderImageWithActions = () => (
+    <div style={{ position: 'relative', width: '100%', height: 120, marginBottom: 8 }}>
+      <CloudinaryImage
+        publicId={image}
+        alt="Variant"
+        options={{ width: 120, height: 120, crop: 'fill' }}
+        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
+      />
+      <div
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          display: 'flex',
+          zIndex: 10,
+        }}
+      >
+        <Button
+          type="text"
+          size="small"
+          icon={<EyeOutlined />}
+          onClick={handlePreviewImage}
+          style={{ color: 'white', backgroundColor: 'rgba(0,0,0,0.5)' }}
+        />
+        <Button
+          type="text"
+          size="small"
+          icon={<DeleteOutlined />}
+          onClick={handleRemoveImage}
+          style={{ color: 'white', backgroundColor: 'rgba(0,0,0,0.5)' }}
+        />
+      </div>
+    </div>
+  );
+
+  const uploadButton = (
+    <div>
+      <PlusOutlined />
+      <div style={{ marginTop: 8 }}>Upload</div>
+    </div>
+  );
 
   return (
     <Modal
@@ -68,25 +177,28 @@ const EditVariantModal = ({ open, variant, onCancel, onFinish, productId }) => {
       open={open}
       onCancel={onCancel}
       footer={null}
+      width={600}
       destroyOnClose
     >
       <Form form={form} layout="vertical" onFinish={handleVariantFinish}>
         <Row gutter={16}>
-          <Col span={8}>
+          <Col span={10}>
             <Form.Item label="Image">
-              <Upload {...uploadProps}>
-                {imageUrl ? (
-                  <img src={imageUrl} alt="variant" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ textAlign: 'center' }}>
-                    <PlusOutlined style={{ fontSize: 32 }} />
-                    <div style={{ marginTop: 8 }}>Upload</div>
-                  </div>
-                )}
-              </Upload>
+              {image ? (
+                renderImageWithActions()
+              ) : (
+                <Upload
+                  listType="picture-card"
+                  showUploadList={false}
+                  customRequest={handleImageUpload}
+                  disabled={uploading}
+                >
+                  {uploadButton}
+                </Upload>
+              )}
             </Form.Item>
           </Col>
-          <Col span={16}>
+          <Col span={14}>
             <Row gutter={16}>
               <Col span={12}>
                 <Form.Item
@@ -95,13 +207,11 @@ const EditVariantModal = ({ open, variant, onCancel, onFinish, productId }) => {
                   rules={[{ required: true, message: 'Please select size' }]}
                 >
                   <Select placeholder="Select size">
-                    <Option value="38">38</Option>
-                    <Option value="39">39</Option>
-                    <Option value="40">40</Option>
-                    <Option value="41">41</Option>
-                    <Option value="42">42</Option>
-                    <Option value="43">43</Option>
-                    <Option value="44">44</Option>
+                    {SIZE_OPTIONS.map((size) => (
+                      <Option key={size.value} value={size.value}>
+                        {size.label}
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>
@@ -112,13 +222,26 @@ const EditVariantModal = ({ open, variant, onCancel, onFinish, productId }) => {
                   rules={[{ required: true, message: 'Please select color' }]}
                 >
                   <Select placeholder="Select color">
-                    <Option value="Red">Red</Option>
-                    <Option value="Blue">Blue</Option>
-                    <Option value="Purple">Purple</Option>
-                    <Option value="Green">Green</Option>
-                    <Option value="Black">Black</Option>
-                    <Option value="White">White</Option>
-                    <Option value="Pink">Pink</Option>
+                    {COLOR_OPTIONS.map((color) => (
+                      <Option key={color.value} value={color.value}>
+                        <Space>
+                          {color.label}
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              width: 16,
+                              height: 16,
+                              backgroundColor: color.color,
+                              borderRadius: '50%',
+                              border: '1px solid #ddd',
+                              transition: 'transform 0.2s',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.2)')}
+                            onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                          />
+                        </Space>
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>
@@ -139,13 +262,50 @@ const EditVariantModal = ({ open, variant, onCancel, onFinish, productId }) => {
                   label="Status"
                   rules={[{ required: true, message: 'Please select status' }]}
                 >
-                  <Select placeholder="Select status">
-                    <Option value="Enabled">Enabled</Option>
-                    <Option value="Disabled">Disabled</Option>
+                  <Select
+                    placeholder="Select status"
+                    onChange={handleStatusChange}
+                  >
+                    {STATUS_PRODUCT_OPTIONS.map(opt => (
+                      <Select.Option key={opt.value} value={opt.value}>
+                        <Tag color={opt.color}>{opt.label}</Tag>
+                      </Select.Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>
             </Row>
+            {isStatusWarning && (
+              <Row>
+                <Col span={24}>
+                  <div style={{ 
+                    marginTop: '8px', 
+                    padding: '8px', 
+                    backgroundColor: '#fffbe6', 
+                    border: '1px solid #ffe58f', 
+                    borderRadius: '4px' 
+                  }}>
+                    <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                      <p style={{ margin: 0, fontSize: '14px' }}>
+                        Status{' '}
+                        <Tag color={STATUS_PRODUCT_OPTIONS.find(opt => opt.value === pendingStatus)?.color} style={{ fontSize: '12px' }}>
+                          {STATUS_PRODUCT_OPTIONS.find(opt => opt.value === pendingStatus)?.label || pendingStatus}
+                        </Tag>{' '}
+                        may not match inventory ({form.getFieldValue('stock')} units).
+                      </p>
+                      <Space size="small">
+                        <Button type="primary" size="small" onClick={handleConfirmWarning}>
+                          Confirm
+                        </Button>
+                        <Button size="small" onClick={handleCancelWarning}>
+                          Cancel
+                        </Button>
+                      </Space>
+                    </Space>
+                  </div>
+                </Col>
+              </Row>
+            )}
           </Col>
         </Row>
         <Form.Item style={{ marginBottom: 0, marginTop: 16 }}>
@@ -157,6 +317,22 @@ const EditVariantModal = ({ open, variant, onCancel, onFinish, productId }) => {
           </div>
         </Form.Item>
       </Form>
+
+      <Modal
+        open={previewVisible}
+        footer={null}
+        onCancel={() => setPreviewVisible(false)}
+        width={600}
+      >
+        {image && (
+          <CloudinaryImage
+            publicId={image}
+            alt="Variant Preview"
+            options={{ width: 600, crop: 'limit' }}
+            style={{ width: '100%', maxHeight: 500, objectFit: 'contain' }}
+          />
+        )}
+      </Modal>
     </Modal>
   );
 };

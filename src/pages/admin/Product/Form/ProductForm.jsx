@@ -8,36 +8,46 @@ import {
   Row,
   Col,
   Card,
-  Modal,
   message,
   Space,
+  Divider,
+  Typography,
+  Tag,
+  Radio,
+  Tooltip,
+  Modal
 } from 'antd';
-import { 
-  AppstoreOutlined, 
-  EyeOutlined, 
-  LeftOutlined, 
-  ShopOutlined, 
-  TrademarkCircleOutlined 
+import {
+  AppstoreOutlined,
+  LeftOutlined,
+  ShopOutlined,
+  TrademarkCircleOutlined,
+  TagOutlined,
+  PercentageOutlined,
+  CheckCircleOutlined,
+  InfoCircleOutlined
 } from '@ant-design/icons';
 import Variant from './Variant';
 import EditVariantModal from './EditVariantModal';
-import ProductImages from './ProductImages'; 
+import ProductImages from './ProductImages';
 import { getAllBrands } from '../../../../services/brandService';
 import { getAllCategories } from '../../../../services/categoryService';
 import { getAllSuppliers } from '../../../../services/supplierService';
 import { createProduct, fetchProductById, updateProduct } from '../../../../services/productService';
-import { createProductDetail } from '../../../../services/productDetailService';
+import { createProductDetail, updateProductDetail } from '../../../../services/productDetailService';
 import { uploadImage } from '../../../../services/uploadService';
+import { getAppliedPromotionsForProduct, getDiscountedPrice } from '../../../../services/promotionService';
 import { useNavigate, useParams } from 'react-router-dom';
-
+import { currencyFormat } from '../../../../utils/helper';
+import { STATUS_PRODUCT_OPTIONS } from '../../../../constants/productConstant';
 const { TextArea } = Input;
 const { Option } = Select;
+const { Title, Text, Paragraph } = Typography;
 
 const ProductForm = ({ mode }) => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [product, setProduct] = useState(null);
-
   const [form] = Form.useForm();
   const [variants, setVariants] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -45,52 +55,98 @@ const ProductForm = ({ mode }) => {
   const [suppliers, setSuppliers] = useState([]);
   const [formErrors, setFormErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
-  // productImages là mảng các đối tượng { file, url }
   const [productImages, setProductImages] = useState([]);
   const [editingVariant, setEditingVariant] = useState(null);
   const [isEditVariantModalOpen, setIsEditVariantModalOpen] = useState(false);
+  const [discountedPrice, setDiscountedPrice] = useState(null);
+  const [appliedPromotions, setAppliedPromotions] = useState([]);
+  const [tempStatus, setTempStatus] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [displayStatus, setDisplayStatus] = useState(null);
 
-  // Fetch product when editing
+  const totalStock = useMemo(() => {
+    return variants.reduce((sum, variant) => {
+      return sum + (variant.stockQuantity != null ? variant.stockQuantity : (variant.stock || 0));
+    }, 0);
+  }, [variants]);
+
+  const calculatedStatus = useMemo(() => {
+    if (totalStock > 20) return 'AVAILABLE';
+    if (totalStock > 0 && totalStock <= 20) return 'LIMITED_STOCK';
+    return form.getFieldValue('status') || 'UNAVAILABLE';
+  }, [totalStock, form]);
+
+  useEffect(() => {
+    if (!displayStatus) {
+      setDisplayStatus(calculatedStatus);
+    }
+
+    const currentStatus = form.getFieldValue('status');
+    if (
+      mode !== 'edit' ||
+      (currentStatus !== 'UNAVAILABLE' && currentStatus !== 'DISCONTINUED')
+    ) {
+      if (calculatedStatus === 'AVAILABLE' || calculatedStatus === 'LIMITED_STOCK') {
+        form.setFieldsValue({ status: calculatedStatus });
+        setDisplayStatus(calculatedStatus);
+      }
+    }
+  }, [calculatedStatus, form, mode, displayStatus]);
+
   useEffect(() => {
     if (mode === 'edit' && id) {
-      const fetchProduct = async () => {
+      const fetchProductAndPromotions = async () => {
         try {
           const response = await fetchProductById(id);
           if (response) {
             setProduct(response);
-            // Khởi tạo productImages từ response.imageURL (mảng các URL)
             setProductImages(response.imageURL ? response.imageURL.map(url => ({ url })) : []);
+
+            const variantsWithImages = response.productDetails && response.productDetails.map(detail => ({
+              ...detail,
+              image: detail.image || null,
+            }));
+            
+
+            setVariants(variantsWithImages || []);
+
+            const promoResponse = await getAppliedPromotionsForProduct(id);
+            setAppliedPromotions(promoResponse || []);
+            const discountedPriceResponse = await getDiscountedPrice(id);
+            setDiscountedPrice(discountedPriceResponse || response.price);
           } else {
             message.error('Product not found');
             navigate('/admin/products');
           }
         } catch (error) {
-          console.error('Error fetching product:', error);
+          console.error('Error fetching product details:', error);
           message.error('Error fetching product details');
           navigate('/admin/products');
         }
       };
-      fetchProduct();
+      fetchProductAndPromotions();
     }
   }, [mode, id, navigate]);
 
-  // Set form values when product is loaded
   useEffect(() => {
     if (product) {
+      const initialStatus = product.status || 'AVAILABLE';
       form.setFieldsValue({
         productName: product.productName,
         description: product.description,
         price: product.price,
-        status: product.status || 'Available',
+        status: initialStatus,
         categoryID: product.categoryID,
         brandID: product.brandID,
         supplierID: product.supplierID,
       });
-      setVariants(product.productDetails || []);
+      setDisplayStatus(initialStatus);
     } else if (mode !== 'edit') {
       form.resetFields();
       setVariants([]);
       setProductImages([]);
+      setAppliedPromotions([]);
+      setDisplayStatus('AVAILABLE');
     }
     setFormErrors({});
   }, [product, form, mode]);
@@ -127,6 +183,37 @@ const ProductForm = ({ mode }) => {
     fetchStaticData();
   }, []);
 
+  const shouldWarn = (status, stock) => {
+    if (stock > 0 && (status === 'UNAVAILABLE' || status === 'DISCONTINUED')) {
+      return true;
+    }
+    return false;
+  };
+
+  const handleStatusChange = (e) => {
+    const newStatus = e.target.value;
+
+    if (shouldWarn(newStatus, totalStock)) {
+      setTempStatus(newStatus);
+      setModalVisible(true);
+    } else {
+      form.setFieldsValue({ status: newStatus });
+      setDisplayStatus(newStatus);
+    }
+  };
+
+  const handleConfirmStatus = () => {
+    form.setFieldsValue({ status: tempStatus });
+    setDisplayStatus(tempStatus);
+    setModalVisible(false);
+    setTempStatus(null);
+  };
+
+  const handleCancelStatus = () => {
+    setModalVisible(false);
+    setTempStatus(null);
+  };
+
   const handleFinish = async (values) => {
     setFormErrors({});
 
@@ -135,6 +222,7 @@ const ProductForm = ({ mode }) => {
       return;
     }
 
+    // Upload main product images
     const uploadedImages = await Promise.all(
       productImages.map(async (img) => {
         if (img.file) {
@@ -150,7 +238,7 @@ const ProductForm = ({ mode }) => {
       imageURL: uploadedImages,
       description: values.description || '',
       price: values.price,
-      status: values.status || 'Available',
+      status: values.status || 'AVAILABLE',
       brandID: values.brandID,
       categoryID: values.categoryID,
       supplierID: values.supplierID,
@@ -168,21 +256,26 @@ const ProductForm = ({ mode }) => {
         productId = response.data.productID;
         message.success('Product created successfully');
       }
-      
-      for (const variant of variants) {
+
+      const variantPromises = variants.map(async (variant) => {
         const variantData = {
           size: variant.size,
           color: variant.color,
           stockQuantity: variant.stockQuantity || variant.stock || 0,
-          status: variant.status || 'Enabled',
+          status: variant.status || 'AVAILABLE',
+          image: variant.image, 
         };
-
-        await createProductDetail(productId, variantData);
-      }
-      
+        if (variant.productDetailID) {
+          return updateProductDetail(variant.productDetailID, variantData);          
+        } else {          
+          return createProductDetail(productId, variantData);
+        }
+        
+      });
+      await Promise.all(variantPromises);
       navigate('/admin/products');
     } catch (error) {
-      console.error('Error submitting product:', error);
+      console.error('Error saving product:', error);
       message.error('Unable to save product. Please try again later.');
     } finally {
       setSubmitting(false);
@@ -216,30 +309,22 @@ const ProductForm = ({ mode }) => {
         prev.map(v => (v.productDetailID === updatedVariant.productDetailID ? updatedVariant : v))
       );
     } else {
-      setVariants(prev => [...prev, { ...updatedVariant, productDetailID: Date.now() }]);
+      setVariants(prev => [...prev, updatedVariant]);
     }
     setIsEditVariantModalOpen(false);
   };
 
-  const handlePromotionDetails = () => {
-    const promo = form.getFieldValue('promotionID');
-    const details = { name: 'Promo 1', discountPercentage: 20 };
-    Modal.info({
-      title: 'Promotion Details',
-      content: (
-        <div>
-          <Row>
-            <Col span={12}><strong>Name:</strong></Col>
-            <Col span={12}>{details.name}</Col>
-          </Row>
-          <Row>
-            <Col span={12}><strong>Discount:</strong></Col>
-            <Col span={12}>{details.discountPercentage}%</Col>
-          </Row>
-        </div>
-      ),
-      onOk() {},
-    });
+  const handleUpdateVariantStatus = (updatedVariant) => {
+    setVariants(prev =>
+      prev.map(v => (v.productDetailID === updatedVariant.productDetailID ? updatedVariant : v))
+    );
+    message.success(`Variant status changed to ${updatedVariant.status}`);
+  };
+
+  const getTagColor = (discount) => {
+    if (discount >= 50) return 'red';
+    if (discount >= 20) return 'orange';
+    return 'green';
   };
 
   return (
@@ -254,25 +339,35 @@ const ProductForm = ({ mode }) => {
       <Form form={form} layout="vertical" onFinish={handleFinish}>
         <Row gutter={10}>
           <Col span={16}>
-            <Card style={{ marginBottom: 24 }}>
+            <Card
+              bordered={false}
+              style={{
+                marginBottom: 16,
+                borderRadius: 8,
+                boxShadow: '0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1)',
+                background: 'linear-gradient(to right bottom, #ffffff,rgb(241, 241, 241))'
+              }}
+            >
               <h3 style={{ marginTop: 0 }}>Product Information</h3>
               <Form.Item
-                label="Name"
+                label="Product Name"
                 name="productName"
-                rules={[{ required: true, message: 'Please enter product name' }]}
+                rules={[{ required: true, message: 'Please enter the product name' }]}
                 validateStatus={formErrors.productName ? 'error' : undefined}
                 help={formErrors.productName}
               >
                 <Input placeholder="Product Name" />
               </Form.Item>
+
               <Form.Item
-                label="Description (Optional)"
+                label="Description"
                 name="description"
                 validateStatus={formErrors.description ? 'error' : undefined}
                 help={formErrors.description}
               >
                 <TextArea rows={4} placeholder="Product Description" />
               </Form.Item>
+
               <Row gutter={16}>
                 <Col span={8}>
                   <Form.Item
@@ -327,8 +422,100 @@ const ProductForm = ({ mode }) => {
                 </Col>
               </Row>
 
-              {/* Product Images */}
-              <ProductImages 
+              <Row gutter={[16, 16]} align="middle" style={{ marginBottom: 16 }}>
+                <Col span={12} >
+                  <Form.Item
+                    layout='horizontal'
+                    name="status"
+                    label={
+                      <Space>
+                        Status
+                        <Tooltip title="Select 'UNAVAILABLE' or 'DISCONTINUED' if applicable. 'AVAILABLE' and 'Limited Stock' are set automatically based on inventory.">
+                          <InfoCircleOutlined style={{ color: '#1890ff' }} />
+                        </Tooltip>
+                      </Space>
+                    }
+                    validateStatus={formErrors.status ? 'error' : undefined}
+                    help={formErrors.status}
+                    style={{ marginBottom: 0 }}
+                  >
+                    <Radio.Group
+                      size="large"
+                      onChange={handleStatusChange}
+                      value={displayStatus}
+                    >
+                      {STATUS_PRODUCT_OPTIONS.map(option => (
+                        <Radio
+                          key={option.value}
+                          value={option.value}
+                          style={{
+                            marginRight: 16,
+                            marginBottom: 8,
+                          }}
+                          disabled={option.value === 'AVAILABLE' || option.value === 'LIMITED_STOCK'}
+                        >
+                          <Tag
+                            color={option.color}
+                            style={{
+                              minWidth: 100,
+                              textAlign: 'center',
+                              padding: '2px 8px',
+                            }}
+                          >
+                            {option.label}
+                          </Tag>
+                        </Radio>
+                      ))}
+                    </Radio.Group>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <div
+                    style={{
+                      background: '#f5f5f5',
+                      padding: '12px 16px',
+                      borderRadius: 6,
+                      border: '1px solid #e8e8e8',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <div>
+                      <Text strong style={{ fontSize: 14, color: '#595959' }}>
+                        Total Inventory
+                        <Tooltip title="Total of all variant stock quantities">
+                          <InfoCircleOutlined style={{ marginLeft: 6, color: '#1890ff' }} />
+                        </Tooltip>
+                      </Text>
+                      <div>
+                        <Text
+                          style={{
+                            fontSize: 18,
+                            fontWeight: 600,
+                            color: totalStock > 20 ? '#3f8600' : totalStock > 0 ? '#d46b08' : '#cf1322',
+                          }}
+                        >
+                          {totalStock} units
+                        </Text>
+                      </div>
+                    </div>
+                    <div>
+                      <Text strong style={{ fontSize: 14, marginRight: 8 }}>
+                        Current Status:
+                      </Text>
+                      <Tag
+                        color={STATUS_PRODUCT_OPTIONS.find(opt => opt.value === displayStatus)?.color}
+                        style={{ padding: '2px 8px' }}
+                      >
+                        {displayStatus || 'UNAVAILABLE'}
+                      </Tag>
+                    </div>
+                  </div>
+                </Col>
+              </Row>
+
+              <ProductImages
                 product={product}
                 onImagesUpdate={handleImagesUpdate}
                 maxImages={8}
@@ -343,43 +530,92 @@ const ProductForm = ({ mode }) => {
 
           <Col span={8}>
             <Card style={{ marginBottom: 8 }}>
-              <h3 style={{ marginTop: 0 }}>Sales Information</h3>
+              <Title level={4} style={{ marginTop: 0 }}>Sales Information</Title>
+
               <Form.Item
                 name="price"
-                label="Price (VND)"
-                rules={[{ required: true, message: 'Please enter price' }]}
+                label="Price"
+                rules={[{ required: true, message: 'Please enter the price' }]}
                 validateStatus={formErrors.price ? 'error' : undefined}
                 help={formErrors.price}
               >
-                <InputNumber style={{ width: '100%' }} placeholder="Enter price" min={0} />
+                <InputNumber
+                  style={{ width: '100%' }}
+                  placeholder="Enter price"
+                  min={0}
+                  formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                  size="large"
+                  addonAfter="VND"
+                  onPressEnter={(e) => e.preventDefault()}
+                />
               </Form.Item>
-              <Form.Item name="promotionID" label="Promotion">
-                <div style={{ display: 'flex', gap: 5 }}>
-                  <Select placeholder="Select promotion (optional)" style={{ flex: 1 }}>
-                    <Option value={1}>Promo 1</Option>
-                    <Option value={2}>Promo 2</Option>
-                    <Option value={3}>Promo 3</Option>
-                  </Select>
-                  <Button type="default" onClick={handlePromotionDetails}>
-                    <EyeOutlined />
-                  </Button>
-                </div>
-              </Form.Item>
-              <Form.Item name="discountPrice" label="Discount Price">
-                <Input placeholder="Discount price" disabled style={{ width: '100%' }} />
-              </Form.Item>
-              <Form.Item
-                name="status"
-                label="Status"
-                validateStatus={formErrors.status ? 'error' : undefined}
-                help={formErrors.status}
-              >
-                <Select placeholder="Select status" defaultValue="Available">
-                  <Option value="Available">Available</Option>
-                  <Option value="Out of Stock">Out of Stock</Option>
-                  <Option value="Coming Soon">Coming Soon</Option>
-                </Select>
-              </Form.Item>
+
+              {appliedPromotions.length > 0 && (
+                <Card
+                  bordered={false}
+                  style={{
+                    marginBottom: 8,
+                    borderRadius: 8,
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1)',
+                    background: 'linear-gradient(to right bottom, #ffffff, #f9feff)'
+                  }}
+                >
+                  <Title level={5} style={{ display: 'flex', alignItems: 'center', marginTop: 0, marginBottom: 16 }}>
+                    <TagOutlined style={{ marginRight: 8, color: '#1890ff' }} />
+                    Applied Promotions
+                  </Title>
+
+                  <Divider style={{ margin: '0 0 16px 0' }} />
+
+                  {appliedPromotions.map((promo, index) => (
+                    <div key={index} style={{ marginBottom: 16, display: 'flex', alignItems: 'flex-start' }}>
+                      <CheckCircleOutlined style={{ marginRight: 8, marginTop: 4, color: '#52c41a' }} />
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
+                          <Text strong style={{ marginRight: 8 }}>{promo.name}</Text>
+                          <Tag color={getTagColor(promo.discountValue)}>
+                            <PercentageOutlined /> {promo.discountValue}% OFF
+                          </Tag>
+                        </div>
+                        <Paragraph type="secondary">{promo.description}</Paragraph>
+                      </div>
+                    </div>
+                  ))}
+
+                  {discountedPrice !== null && product && (
+                    <>
+                      <Divider style={{ margin: '16px 0' }} />
+                      <div style={{
+                        padding: 16,
+                        background: '#f6ffed',
+                        border: '1px solid #b7eb8f',
+                        borderRadius: 8
+                      }}>
+                        <Title level={5} style={{ marginTop: 0, marginBottom: 12 }}>Price Summary</Title>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
+                          <Text>Original Price:</Text>
+                          <Text delete style={{ color: '#8c8c8c' }}>{currencyFormat(product.price)}</Text>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <Text strong>After Discount:</Text>
+                          <Text strong style={{ fontSize: 18, color: '#52c41a' }}>
+                            {currencyFormat(discountedPrice)}
+                          </Text>
+                        </div>
+
+                        <Paragraph type="secondary" style={{ fontSize: 12, marginTop: 8, marginBottom: 0, fontStyle: 'italic' }}>
+                          {appliedPromotions.length > 1
+                            ? 'Multiple promotions applied (highest discount used)'
+                            : 'Single promotion applied'}
+                        </Paragraph>
+                      </div>
+                    </>
+                  )}
+                </Card>
+              )}
             </Card>
           </Col>
         </Row>
@@ -388,8 +624,10 @@ const ProductForm = ({ mode }) => {
           variants={variants}
           onEditVariant={handleEditVariant}
           onAddVariant={handleAddVariant}
+          onUpdateVariantStatus={handleUpdateVariantStatus}
           error={formErrors.productDetails}
         />
+
         <EditVariantModal
           open={isEditVariantModalOpen}
           variant={editingVariant}
@@ -407,6 +645,19 @@ const ProductForm = ({ mode }) => {
           </Button>
         </div>
       </Form>
+
+      <Modal
+        title="Warning"
+        open={modalVisible}
+        onOk={handleConfirmStatus}
+        onCancel={handleCancelStatus}
+        okText="Confirm"
+        cancelText="Cancel"
+      >
+        <Text>
+          The selected status <Tag color={STATUS_PRODUCT_OPTIONS.find(opt => opt.value === tempStatus)?.color}>{tempStatus}</Tag> may not be appropriate for the current inventory ({totalStock} units). Are you sure you want to proceed?
+        </Text>
+      </Modal>
     </div>
   );
 };

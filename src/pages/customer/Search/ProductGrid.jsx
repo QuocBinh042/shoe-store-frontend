@@ -9,6 +9,41 @@ const ProductGrid = ({ products, totalProducts, currentPage, onPageChange }) => 
   const handleDetails = (productID) => {
     navigate(`/product-detail/${productID}`);
   };
+  const getPromotionLabel = (promotionValue) => {
+    if (!promotionValue) return "";
+
+    if (promotionValue.startsWith("Discount")) {
+      const match = promotionValue.match(/\d+/);
+      return match ? `Sale ${match[0]}%` : "Sale";
+    }
+
+    if (promotionValue.startsWith("Buy")) {
+      const match = promotionValue.match(/Buy (\d+) gift (\d+)/i);
+      if (match) {
+        const buy = match[1];
+        const gift = match[2];
+        return `🎁 Buy ${buy} Get ${gift} Free`;
+      }
+      return "🎁 Buy More Get Free";
+    }
+
+    if (promotionValue.startsWith("Gift")) {
+      return "🎁 Free Gift";
+    }
+
+    if (promotionValue.startsWith("Fix:")) {
+      const match = promotionValue.match(/\d+/);
+      if (match) {
+        const fixedAmount = Number(match[0]).toLocaleString("vi-VN") + "₫";
+        return `-${fixedAmount}`;
+      }
+      return "Fixed Discount";
+    }
+
+    return "";
+  };
+
+
   return (
     <>
       {products.length === 0 ? (
@@ -23,8 +58,8 @@ const ProductGrid = ({ products, totalProducts, currentPage, onPageChange }) => 
             return (
               <Col key={product.productID} xs={24} sm={12} md={8} lg={6}>
                 <Badge.Ribbon
-                  text={product.discountPrice !== product.price ? "Sale" : ""}
-                  color="red"
+                  text={<span style={{ fontSize: "13px", fontWeight: 500 }}>{getPromotionLabel(product.promotionValue)}</span>}
+                  color="volcano"
                   placement="start"
                 >
                   <Card

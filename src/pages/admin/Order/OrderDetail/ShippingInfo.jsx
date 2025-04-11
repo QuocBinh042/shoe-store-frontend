@@ -1,72 +1,76 @@
 import React from 'react';
-import { Card, Row, Col, Typography, Divider, Space, Tag } from 'antd';
+import { Row, Col, Typography, Divider, Space, Tag, Button } from 'antd';
 import { EditOutlined, EnvironmentOutlined, CarOutlined, NumberOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;
 
-const ShippingInfo = ({ address, method, trackingNumber }) => {
+const ShippingInfo = ({ address, method, trackingNumber, onEdit }) => {
   return (
-    <Card 
-      bordered={false} 
-      style={{ 
-        borderRadius: 8, 
-        boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-        background: '#ffffff'
+    <div
+      style={{
+        background: '#fff',
+        borderRadius: 12,
+        padding: 24,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+        border: '1px solid #f0f0f0',
+        marginBottom: 24
       }}
     >
-      <Row justify="space-between" align="middle">
+      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
-          <Title level={4} style={{ margin: 0, fontSize: 18 }}>Shipping Details</Title>
+          <Title level={4} style={{ margin: 0 }}>🚚 Shipping Info</Title>
         </Col>
         <Col>
-          <a href="#" style={{ color: '#1890ff', display: 'flex', alignItems: 'center' }}>
-            <EditOutlined style={{ marginRight: 6 }} /> Edit
-          </a>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            style={{ color: '#1677ff', fontWeight: 500 }}
+            onClick={onEdit}
+          >
+            Edit
+          </Button>
         </Col>
       </Row>
-      
-      <Divider style={{ margin: '16px 0 12px' }} />
-      
-      <Space direction="vertical" size={16} style={{ width: '100%' }}>
+
+      <Divider style={{ margin: '16px 0 20px' }} />
+
+      <Space direction="vertical" size={24} style={{ width: '100%' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+          <Row align="middle" style={{ marginBottom: 6 }}>
             <EnvironmentOutlined style={{ color: '#8c8c8c', marginRight: 8 }} />
-            <Text style={{ fontSize: 14, color: '#8c8c8c' }}>Shipping Address</Text>
-          </div>
+            <Text type="secondary">Shipping Address</Text>
+          </Row>
           <div style={{ paddingLeft: 24 }}>
-            <Text strong style={{ fontSize: 14, display: 'block' }}>{address.line1}</Text>
-            {address.line2 && <Text strong style={{ fontSize: 14, display: 'block' }}>{address.line2}</Text>}
-            <Text strong style={{ fontSize: 14, display: 'block' }}>
-              {address.city}, {address.state} {address.zip}
-            </Text>
-            <Text strong style={{ fontSize: 14, display: 'block' }}>{address.country}</Text>
+            <Text strong style={{ fontSize: 14 }}>{address}</Text>
           </div>
         </div>
-        
+
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+          <Row align="middle" style={{ marginBottom: 6 }}>
             <CarOutlined style={{ color: '#8c8c8c', marginRight: 8 }} />
-            <Text style={{ fontSize: 14, color: '#8c8c8c' }}>Shipping Method</Text>
-          </div>
+            <Text type="secondary">Shipping Method</Text>
+          </Row>
           <div style={{ paddingLeft: 24 }}>
-            <Tag color="blue" style={{ fontSize: 13, padding: '2px 12px' }}>{method}</Tag>
+            <Tag color="blue" style={{ fontSize: 13, padding: '2px 12px', borderRadius: 16 }}>
+              {method}
+            </Tag>
           </div>
         </div>
-        
+
         {trackingNumber && (
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+            <Row align="middle" style={{ marginBottom: 6 }}>
               <NumberOutlined style={{ color: '#8c8c8c', marginRight: 8 }} />
-              <Text style={{ fontSize: 14, color: '#8c8c8c' }}>Tracking Number</Text>
-            </div>
+              <Text type="secondary">Tracking Number</Text>
+            </Row>
             <div style={{ paddingLeft: 24 }}>
               <Text strong copyable style={{ fontSize: 14 }}>{trackingNumber}</Text>
             </div>
           </div>
         )}
       </Space>
-    </Card>
+    </div>
   );
 };
 
-export default ShippingInfo; 
+export default ShippingInfo;

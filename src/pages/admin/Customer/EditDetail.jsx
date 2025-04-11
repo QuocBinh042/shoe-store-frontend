@@ -1,67 +1,113 @@
 import React, { useEffect } from 'react';
-import { Modal, Form, Input, Button } from 'antd';
+import { Modal, Form, Input, Button, Select } from 'antd';
 
-const EditDetail = ({ open, onCancel, customer, handleSave }) => {
+const { Option } = Select;
+
+const EditDetail = ({ open, onCancel, customer, handleSave, mode }) => {
   const [form] = Form.useForm();
 
-  // Khi customer thay đổi, set giá trị lên form
   useEffect(() => {
-    if (customer) {
+    if (mode === 'edit' && customer) {
       form.setFieldsValue({
-        avatar: customer.avatar,
         name: customer.name,
         email: customer.email,
-        username: customer.username,
-        phone: customer.phone,
+        phoneNumber: customer.phoneNumber,
+        status: customer.status,
+        customerGroup: customer.customerGroup,
+      });
+      console.log('Form values:', form.getFieldsValue());
+    } else if (mode === 'add') {
+      form.setFieldsValue({
+        status: 'Active',
+        roles: ['CUSTOMER'],
       });
     } else {
       form.resetFields();
     }
-  }, [customer, form]);
+    
+  }, [customer, form, mode]);
 
-  // Hàm xử lý khi submit form
   const onFinish = (values) => {
     handleSave(values);
   };
 
   return (
     <Modal
-      title="Edit Customer Details"
+      title={mode === 'add' ? 'Add New Customer' : 'Edit Customer Details'}
       open={open}
       onCancel={onCancel}
       footer={null}
       destroyOnClose
     >
       <Form form={form} layout="vertical" onFinish={onFinish}>
-        <Form.Item label="Avatar" name="avatar">
-          <Input placeholder="Enter avatar URL" />
-        </Form.Item>
         <Form.Item
           label="Name"
           name="name"
-          rules={[{ required: true, message: 'Please enter name' }]}
-        >
-          <Input />
-        </Form.Item>
-        <Form.Item
-          label="Email"
-          name="email"
           rules={[
-            { required: true, message: 'Please enter email' },
-            { type: 'email', message: 'Please enter a valid email' },
+            { required: true, message: 'Name cannot be blank' },
+            { max: 50, message: 'Name must not exceed 50 characters' },
           ]}
         >
           <Input />
         </Form.Item>
-        <Form.Item label="Username" name="username">
+
+        <Form.Item
+          label="Email"
+          name="email"
+          rules={[
+            { required: true, message: 'Email cannot be blank' },
+            { type: 'email', message: 'Invalid email format' },
+          ]}
+        >
           <Input />
         </Form.Item>
-        <Form.Item label="Phone Number" name="phone">
+
+        {mode === 'add' && (
+          <Form.Item
+            label="Password"
+            name="password"
+            rules={[{ required: true, message: 'Password cannot be blank' }]}
+          >
+            <Input.Password />
+          </Form.Item>
+        )}
+
+        <Form.Item
+          label="Phone Number"
+          name="phoneNumber"
+          rules={[
+            { required: true, message: 'Phone number cannot be blank' },
+          ]}
+        >
           <Input />
+        </Form.Item>
+
+        <Form.Item
+          label="Status"
+          name="status"
+          rules={[{ required: true, message: 'Status cannot be blank' }]}
+        >
+          <Select>
+            <Option value="Active">Active</Option>
+            <Option value="Inactive">Inactive</Option>
+          </Select>
+        </Form.Item>
+
+        <Form.Item
+          name="customerGroup"
+          label="TYPE OF CUSTOMER"
+          rules={[{ required: true, message: 'Please select type of customer' }]}
+          initialValue={'NEW'}
+        >
+          <Select>
+            <Option value="NEW">New Customer</Option>
+            <Option value="EXISTING">Existing Customer</Option>
+            <Option value="VIP">VIP Member</Option>
+          </Select>
         </Form.Item>
         <Form.Item>
           <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
-            Save Changes
+            {mode === 'add' ? 'Add Customer' : 'Save Changes'}
           </Button>
           <Button onClick={onCancel}>Cancel</Button>
         </Form.Item>

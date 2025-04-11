@@ -128,4 +128,14 @@ export const deleteData = async (endpoint) => {
   }
 };
 
+export const patchData = async (endpoint, data) => {
+  try {
+    const response = await apiClient.patch(endpoint, data);
+    return response.data;
+  } catch (error) {
+    console.error("API DELETE Error:", error);
+    throw error;
+  }
+};
+
 export { apiClient };
