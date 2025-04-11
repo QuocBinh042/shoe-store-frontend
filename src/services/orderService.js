@@ -116,6 +116,33 @@ export const getAllOrdersSorted = async (sort, page = 1, pageSize = 12) => {
     return data;
 };
 
+export const filterOrders = async ({
+    mode,
+    status,
+    q,
+    from,
+    to,
+    sort = 'newest',
+    page = 1,
+    pageSize = 12,
+}) => {
+    const params = new URLSearchParams();
+    
+    if (mode) params.append('mode', mode);
+    if (status && status !== 'ALL') params.append('status', status);
+    if (q) params.append('q', q);
+    if (from) params.append('from', from);
+    if (to) params.append('to', to);
+    if (sort) params.append('sort', sort);
+
+    params.append('page', page);
+    params.append('pageSize', pageSize);
+    console.log(params.toString())
+    const data = await fetchData(`/orders/filter?${params.toString()}`);
+    return data;
+};
+
+
 export const getAllOrdersPaged = async (page = 1, pageSize = 12) => {
     const data = await fetchData(`orders?page=${page}&pageSize=${pageSize}`);
     return data;
@@ -139,10 +166,9 @@ export const getOrdersByYear = async (page = 1, pageSize = 12) => {
 export const getRevenueFromPromotions = async () => {
     const data = await fetchData('orders/revenue/with-promotions');
     return data.data;
-  };
-  
-  export const countOrdersWithPromotions = async () => {
+};
+
+export const countOrdersWithPromotions = async () => {
     const data = await fetchData('orders/count/with-promotions');
     return data.data;
-  };
-  
+};
