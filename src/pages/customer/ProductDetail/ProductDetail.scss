@@ -6,6 +6,14 @@
       background: white;
       padding: 1rem;
       border-radius: 0.5rem;
+      .main-image {
+        width: 400px;
+        height: 400px;
+        object-fit: cover;
+        display: block;
+        margin: auto;
+        border-radius: 5px;
+      }
       .thumbnail-images {
         display: flex;
         gap: 10px;

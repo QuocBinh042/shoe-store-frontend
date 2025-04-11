@@ -14,7 +14,7 @@ function Home() {
         <img src={boot} alt="Ski Boots" className="header__boot-image header__boot-image--show" />
         <div className="header__slogan header__slogan--bottom">Conquer Every Journey!</div>
       </div>
-      <FeaturedItems />
+      {/* <FeaturedItems /> */}
       <div className="banner">
         <img src={banner} alt="Banner" />
       </div>

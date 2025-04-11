@@ -18,6 +18,7 @@
     font-weight: bold;
     opacity: 0;
     animation: fade-slide-up 1.5s ease-in-out forwards;
+
     &--top {
       font-size: 7rem;
       top: 15%;
@@ -33,6 +34,7 @@
       animation-delay: 1s;
       z-index: 0;
     }
+
     &--fade {
       animation: fade-slide-up 1.5s ease-in-out forwards;
     }
@@ -48,6 +50,7 @@
     transition:
       opacity 1s ease,
       transform 1s ease;
+
     &--show {
       opacity: 1;
       transform: translateY(0);
@@ -55,11 +58,14 @@
     }
   }
 }
+
 @keyframes header__boot-bounce {
+
   0%,
   100% {
     transform: translateY(0);
   }
+
   50% {
     transform: translateY(-10px);
   }
@@ -71,11 +77,13 @@
     transform: translateY(0);
   }
 }
+
 @keyframes slide-in-right {
   from {
     opacity: 0;
     transform: translateX(100px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -87,6 +95,7 @@
     opacity: 0;
     transform: translateX(-100px);
   }
+
   to {
     opacity: 1;
     transform: translateX(0);
@@ -205,6 +214,7 @@
       font-size: 1.5rem;
       font-weight: bold;
       color: #dc3545;
+
       &--old {
         text-decoration: line-through;
         color: #aaa;
@@ -235,6 +245,7 @@
 .slick-prev {
   color: black !important;
 }
+
 .slick-next {
   color: black !important;
 }
@@ -315,6 +326,7 @@
     &-list-item {
       font-size: 15px;
       color: white !important;
+
       .feature-product__icon {
         color: #77c043;
         font-weight: bold;
@@ -331,6 +343,7 @@
   padding: 50px 0;
   background-color: #fff;
 }
+
 .service-box {
   text-align: center;
   padding: 30px;
@@ -400,24 +413,23 @@
   }
 
   &__item {
+    width: 150PX;
+    /* Kích thước cụ thể thay vì vw/vh */
+    height: 150PX;
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 15vw;
-    height: 19vh;
-    border-radius: 8px;
-    transition:
-      transform 0.3s ease,
-      box-shadow 0.3s ease;
-
+    overflow: hidden;
     &:hover {
       transform: scale(1.1);
       box-shadow: 0 8px 12px rgba(255, 255, 255, 0.2);
     }
 
     &__image {
-      max-width: 80%;
-      max-height: 80%;
+      width: 50px;
+      height: 50px;
+      object-fit: contain;
+
       filter: brightness(1) invert(0);
       transition:
         filter 0.3s ease,

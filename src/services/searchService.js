@@ -3,9 +3,9 @@ export const fetchFilters = async () => {
   const data = await fetchData('search/show-filtered');
   return data;
 };
-export const fetchAllProducts = async ({ page = 1, pageSize = 12 }) => {
+export const fetchAllProducts = async (page) => {
   try {
-    const response = await fetchData(`search/all-products?page=${page}&pageSize=${pageSize}&forceReload=1`);
+    const response = await fetchData(`search/all-products?page=${page}`);
     if (!response?.data?.items) {
       console.error("No data found in response.");
       return { products: [], total: 0 };

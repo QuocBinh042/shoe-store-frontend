@@ -6,6 +6,7 @@ import { ArrowLeftOutlined, CheckCircleOutlined, DeleteOutlined, DownCircleFille
 import { fetchCartItemByCartId, updateCartItem, deleteCartItem } from "../../../services/cartItemService";
 import { useSelector } from "react-redux";
 const Cart = () => {
+  const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_PRODUCT_IMAGE_BASE_URL;
   const navigate = useNavigate();
   const location = useLocation();
   const prevPath = useRef(location.pathname);
@@ -26,20 +27,21 @@ const Cart = () => {
 
   const loadCartItemByUser = async (id, page = 1, size = 3) => {
     const data = await fetchCartItemByCartId(id, page, size);
+    console.log(data)
     if (data && Array.isArray(data.items)) {
       const enrichedCartItems = data.items.map((cartItem) => {
-        const productDetail = cartItem.productDetailDTO;
-        const productName = cartItem.productName;
+  
+        const image = `${CLOUDINARY_BASE_URL}${cartItem.productDTO.productID}/${cartItem.productDTO.imageURL[0]}`
         return {
-          key: cartItem.cartItemDTO.cartItemID,
-          name: productName,
-          size: productDetail.size,
-          colors: productDetail.color,
+          key: cartItem.productDetailDTO.productDetailID,
+          name: cartItem.productDTO.productName,
+          size: cartItem.productDetailDTO.size,
+          colors: cartItem.productDetailDTO.color,
           quantity: cartItem.cartItemDTO.quantity,
           initialQuantity: cartItem.cartItemDTO.quantity,
-          price: cartItem.productPrice,
-          image: productDetail.imageURL,
-          stockQuantity: productDetail.stockQuantity,
+          price: cartItem.productDTO.price,
+          image: image,
+          stockQuantity: cartItem.productDetailDTO.stockQuantity,
           isChecked: false,
         };
       });

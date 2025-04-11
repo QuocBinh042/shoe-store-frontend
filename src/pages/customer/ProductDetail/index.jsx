@@ -9,10 +9,11 @@ import { useSelector } from "react-redux";
 import { fetchProductDetailByProductId } from "../../../services/productDetailService";
 import { addCartItem } from "../../../services/cartItemService";
 const ProductDetails = () => {
+  const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_PRODUCT_IMAGE_BASE_URL;
   const navigate = useNavigate();
   const { productID } = useParams();
   const [product, setProduct] = useState([]);
-  const [mainImage, setMainImage] = useState("https://res.cloudinary.com/dowsceq4o/image/upload/v1735919650/project_ShoeStore/ImageProduct/1/kxgjis3uuvn3ulvjtluy.png");
+  const [mainImage, setMainImage] = useState()
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedColor, setSelectedColor] = useState(null);
@@ -30,21 +31,22 @@ const ProductDetails = () => {
       setIsLoading(true);
       try {
         const details = await fetchProductDetailByProductId(productID);
-console.log(details)
+        console.log(details)
+        const images = details.imageURL?.map(img => `${CLOUDINARY_BASE_URL}${productID}/${img}`) || [];
         if (details) {
           setProduct({
             productName: details.productName || "No name",
             categoryName: details.categoryName || "No category",
             brandName: details.brandName || "No brand",
             description: details.description || "No description",
-            imageURL: details.imageURL || [],
+            imageURL: images,
             price: details.price || 0,
-            discount:details.discountPrice
+            discount: details.discountPrice
           });
 
           setProductDetails(details.productDetails || []);
           setAvailableColors([...new Set(details.productDetails?.map(d => d.color))] || []);
-          // setDiscountedPrice(discount ?? details.price);
+          setMainImage(images.length > 0 ? images[0] : "fallback-image-url");
         } else {
           setProduct(null);
         }
@@ -102,7 +104,7 @@ console.log(details)
       quantity: quantity,
       color: selectedColor,
       size: selectedSize,
-      image: product?.imageURL?.[0] || '',
+      image: product?.imageURL?.[0],
       stockQuantity: selectedDetail.stockQuantity,
     };
 
@@ -179,7 +181,7 @@ console.log(details)
   const handleQuantityChange = (value) => {
     if (value > selectedStock) {
       Modal.warning({
-        content: `Chỉ còn ${selectedStock} sản phẩm trong kho.`,
+        content: `Only ${selectedStock} product stock.`,
       });
       setQuantity(selectedStock);
     } else {
@@ -200,21 +202,43 @@ console.log(details)
         <Col span={18} className="product-image">
           <Row gutter={24}>
             <Col span={10} className="product-image">
-              <Image width={"100%"} src={mainImage} alt="Main Product" className="main-image" />
-              <Row gutter={10} className="thumbnail-images">
-                {product?.imageURL?.map((image, index) => (
-                  <Col key={index}>
-                    <Image
-                      preview={false}
-                      src={image}
-                      alt={`Thumbnail ${index + 1}`}
-                      onClick={() => changeImage(image)}
-                      className={`thumbnail ${mainImage === image ? "active" : ""}`}
-                    />
-                  </Col>
-                )) || <p>No images available</p>}
+              <Image
+                width="100%"
+                src={mainImage}
+                alt="Main Product"
+                className="main-image"
+              />
+              <Row gutter={[10, 10]} className="thumbnail-images" justify="center">
+                {(() => {
+                  let displayedImages = product?.imageURL || [];
+                  if (displayedImages.length < 2) {
+                    displayedImages = [...displayedImages, ...displayedImages.slice(0, 2 - displayedImages.length)];
+                  }
+                  displayedImages = displayedImages.slice(0, 5);
+
+                  return displayedImages.map((image, index) => (
+                    <Col key={index}>
+                      <Image
+                        preview={false}
+                        src={image}
+                        width={60}
+                        alt={`Thumbnail ${index + 1}`}
+                        onClick={() => setMainImage(image)}
+                        className={`thumbnail ${mainImage === image ? "active" : ""}`}
+                        style={{
+                          cursor: "pointer",
+                          border: mainImage === image ? "2px solid #1890ff" : "1px solid #ddd",
+                          padding: "2px",
+                          borderRadius: "4px"
+                        }}
+                      />
+                    </Col>
+                  ));
+                })()}
               </Row>
             </Col>
+
+
             <Col span={13} className="product-info">
               <h3>{product?.brandName || "Unknown Brand"} / {product?.categoryName || "Unknown Category"}</h3>
 

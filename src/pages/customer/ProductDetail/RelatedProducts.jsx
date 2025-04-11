@@ -4,6 +4,7 @@ import shoe from "../../../assets/images/products/shoe3.png";
 import { useNavigate } from "react-router-dom";
 import { getRelatedProduct } from "../../../services/productService";
 const RelatedProducts = ({ productId }) => {
+  const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_PRODUCT_IMAGE_BASE_URL;
   const navigate = useNavigate();
   const [relatedProducts, setRelatedProducts] = useState([]);
   useEffect(() => {
@@ -36,14 +37,22 @@ const RelatedProducts = ({ productId }) => {
             <Col key={product.productID}>
 
               <Card
-                style={{ marginLeft: 15, marginRight: 10, width: '88%' }}
+                style={{ marginLeft: 18, marginRight: 13, width: '88%' }}
                 cover={
                   <Badge.Ribbon
-                    text={product.discountPrice!== product.price ? `Sale` : ''}
+                    text={product.discountPrice !== product.price ? `Sale` : ''}
                     color="red"
                     placement="start"
                   >
-                    <Image preview={false} alt={product.productName} src="https://res.cloudinary.com/dowsceq4o/image/upload/v1735919650/project_ShoeStore/ImageProduct/1/i3p1us11avw3p4ya1g02.png" />
+                    <Image
+                      preview={false}
+                      alt={product.productName}
+                      src={product.imageURL?.length > 0 ? `${CLOUDINARY_BASE_URL}${product.productID}/${product.imageURL[0]}` : ""}
+                      style={{ width: "200px", height: "250px", objectFit: "contain" }}
+                    />
+
+
+
                   </Badge.Ribbon>
                 }
                 hoverable

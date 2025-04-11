@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { fetchOrderByUser } from '../../../services/orderService';
 import { fetcPaymentByOrder } from '../../../services/paymentService';
 import { fetchOrderDetailByOrder } from '../../../services/orderDetailService';
+import { image } from 'framer-motion/client';
 const onChange = (key) => {
   // console.log(key);
 };
@@ -34,30 +35,28 @@ function MyOrder() {
       const detailedOrders = await Promise.all(
         fetchedOrders.map(async (order) => {
           console.log(order)
-          const details = await fetchOrderDetailByOrder(order.orderID);
-          console.log(details)
-          const payment = await fetcPaymentByOrder(order.orderID);
           return {
-            id: order.orderID,
-            name: order?.user?.name || "Unknown",
-            phone: order?.user?.phoneNumber || "N/A",
-            date: order.orderDate,
-            status: order.status,
-            paymentMethod: order.typePayment,
-            shippingAddress: order.shippingAddress,
-            total: order.total,
-            details: Array.isArray(details) ? details.map(detail => ({
-              id: detail.orderDetailID,
+            id: order.orderDTO.orderID,
+            name: order.orderDTO.user.name || "Unknown",
+            phone:  order.orderDTO.user.phoneNumber || "N/A",
+            date:  order.orderDTO.orderDate,
+            status:  order.orderDTO.status,
+            paymentMethod: order.orderDTO.paymentMethod,
+            shippingAddress: order.orderDTO.shippingAddress,
+            total:  order.orderDTO.total,
+            details: Array.isArray(order.orderDetailDTOs) ? order.orderDetailDTOs.map(detail => ({
+              id: detail.productDetail.productDetailID,
               price: detail.price,
               quantity: detail.quantity,
               size: detail?.productDetail?.size || "N/A",
               color: detail?.productDetail?.color || "N/A",
               stockQuantity: detail?.productDetail?.stockQuantity || 0,
+              // image:detail
             })) : [],
-            code: order.code,
-            paymentStatus: payment?.status || "Unknown",
-            feeShip: order.feeShip,
-            discount: order.discount
+            code:  order.orderDTO.code,
+            paymentStatus:order.paymentDTO?.status || "Unknown",
+            feeShip:  order.orderDTO.feeShip,
+            discount:  order.orderDTO.discount
           };
         })
       );

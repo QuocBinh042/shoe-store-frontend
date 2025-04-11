@@ -1,21 +1,11 @@
 import React from "react";
-
+const CLOUDINARY_BRAND_BASE_URL = process.env.REACT_APP_CLOUDINARY_BRAND_IMAGE_BASE_URL
 const brands = [
-  { src: "/ImageBrand/Shoe/Shoe_Nike.png", alt: "Nike" },
-  { src: "/ImageBrand/Shoe/Shoe_Adidas.png", alt: "Adidas" },
-  { src: "/ImageBrand/Shoe/Shoe_Puma.png", alt: "Puma" },
-  { src: "/ImageBrand/Shoe/Shoe_Reebok.png", alt: "Reebok" },
-  { src: "/ImageBrand/Shoe/Shoe_UnderArmour.png", alt: "Under Armour" },
-  { src: "/ImageBrand/Shoe/Shoe_Converse.png", alt: "Converse" },
-];
-
-const products = [
-  { src: "../images/shoe1.png", alt: "Product 1" },
-  { src: "../images/shoe2.png", alt: "Product 2" },
-  { src: "../images/shoe2.png", alt: "Product 3" },
-  { src: "../images/shoe2.png", alt: "Product 4" },
-  { src: "../images/shoe1.png", alt: "Product 5" },
-  { src: "../images/shoe1.png", alt: "Product 6" },
+  { src: `${CLOUDINARY_BRAND_BASE_URL}nike/nike.png`, alt: "Nike" },
+  { src: `${CLOUDINARY_BRAND_BASE_URL}adidas/adidas.png`, alt: "Adidas" },
+  { src: `${CLOUDINARY_BRAND_BASE_URL}puma/puma.png`, alt: "Puma" },
+  { src: `${CLOUDINARY_BRAND_BASE_URL}reebok/reebok.png`, alt: "Reebok" },
+  { src: `${CLOUDINARY_BRAND_BASE_URL}under_armor/under_armour.png`, alt: "Under Armour" },
 ];
 
 const BrandAndProductSection = () => {
@@ -36,22 +26,11 @@ const BrandAndProductSection = () => {
                 src={brand.src}
                 alt={brand.alt}
                 className="brand-section__image"
+                width={150}
               />
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="product-section">
-        {products.map((product, index) => (
-          <div key={index} className="product-section__card">
-            <img
-              src={product.src}
-              alt={product.alt}
-              className="product-section__image"
-            />
-          </div>
-        ))}
       </div>
     </div>
   );

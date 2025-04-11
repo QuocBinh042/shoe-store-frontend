@@ -4,11 +4,11 @@ import { HeartOutlined, ShoppingCartOutlined, ShoppingOutlined } from '@ant-desi
 import { useNavigate } from 'react-router-dom';
 
 const ProductGrid = ({ products, totalProducts, currentPage, onPageChange }) => {
+  const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_PRODUCT_IMAGE_BASE_URL;
   const navigate = useNavigate();
   const handleDetails = (productID) => {
     navigate(`/product-detail/${productID}`);
   };
-  console.log(products)
   return (
     <>
       {products.length === 0 ? (
@@ -18,19 +18,33 @@ const ProductGrid = ({ products, totalProducts, currentPage, onPageChange }) => 
           {products.map((product) => {
             const formattedPrice = product.price.toLocaleString('vi-VN') + "₫";
             const formattedDiscountPrice = product.discountPrice.toLocaleString('vi-VN') + "₫"
-              
+
 
             return (
               <Col key={product.productID} xs={24} sm={12} md={8} lg={6}>
                 <Badge.Ribbon
-                  text={product.discountPrice!==product.price ? "Sale" : ""}
+                  text={product.discountPrice !== product.price ? "Sale" : ""}
                   color="red"
                   placement="start"
                 >
                   <Card
                     cover={
-                      product.image ? (
-                        <img alt={product.productName} src={product.image} />
+                      product.imageURL?.length > 0 ? (
+                        (() => {
+                          const imageUrl = `${CLOUDINARY_BASE_URL}${product.productID}/${product.imageURL[0]}`;
+                          return (
+                            <img
+                              alt={product.productName}
+                              src={imageUrl}
+                              style={{
+                                width: "100%",
+                                height: "200px",
+                                objectFit: "contain",
+                                backgroundColor: "#fff"
+                              }}
+                            />
+                          );
+                        })()
                       ) : (
                         <div
                           style={{
@@ -49,7 +63,8 @@ const ProductGrid = ({ products, totalProducts, currentPage, onPageChange }) => 
                     hoverable
                     onClick={() => handleDetails(product.productID)}
                   >
-                    <div style={{ minHeight: "30px", display: "flex", alignItems: "center", marginBottom: 10  }}>
+
+                    <div style={{ minHeight: "30px", display: "flex", alignItems: "center", marginBottom: 10 }}>
                       {product.rating > 0 ? (
                         <Rate disabled allowHalf value={product.rating} style={{ marginBottom: 0 }} />
                       ) : (
@@ -61,7 +76,7 @@ const ProductGrid = ({ products, totalProducts, currentPage, onPageChange }) => 
                       title={product.productName}
                       description={
                         <>
-                          {product.discountPrice!==product.price ? (
+                          {product.discountPrice !== product.price ? (
                             <>
                               <span style={{ textDecoration: 'line-through', color: '#888', marginRight: 8 }}>
                                 {formattedPrice}
@@ -83,7 +98,7 @@ const ProductGrid = ({ products, totalProducts, currentPage, onPageChange }) => 
           })}
         </Row>
       )}
-      <Pagination style={{marginTop:"10px"}}
+      <Pagination style={{ marginTop: "10px" }}
         current={currentPage}
         total={totalProducts}
         pageSize={12}

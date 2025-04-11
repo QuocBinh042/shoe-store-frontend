@@ -4,11 +4,13 @@ import React, { useState, useEffect, useCallback } from "react";
 import { fetchReviewByOrderDetail,addReview } from "../../../services/reviewService";
 import { useSelector } from "react-redux";
 function OrderDetailDrawer({ isOpen, onClose, order }) {
+  const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_PRODUCT_IMAGE_BASE_URL;
   const [reviews, setReviews] = useState({});
   const [selectedReview, setSelectedReview] = useState(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [newReview, setNewReview] = useState({ visible: false, detailId: null, rating: 0, comment: "" });
   const user = useSelector((state) => state.account.user);
+  console.log(order)
   useEffect(() => {
     if (!order?.details?.length) return;
     

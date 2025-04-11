@@ -22,7 +22,6 @@ const FeatureProduct = () => {
         <div className="feature-product__content">
           <h3 className="feature-product__content-subtitle">FEATURE PRODUCTS</h3>
           <h1 className="feature-product__content-title">LUKMALL MEN RUNNING</h1>
-          <button className="feature-product__content-button">BUY NOW</button>
         </div>
         <div className="feature-product__image">
           <img

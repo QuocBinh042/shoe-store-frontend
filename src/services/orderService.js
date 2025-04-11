@@ -1,5 +1,6 @@
 import { fetchData,postData } from './apiService'
 export const addOrder = async (order) => {
+    console.log(order)
     const data = await postData(`order/add`, order);
     if (data) {
         console.log('Order added successfully:', data);

@@ -7,12 +7,13 @@ import { Header } from 'antd/es/layout/layout';
 import ResultsHeader from './ResultHeader';
 import { fetchAllProducts, fetchFilteredProducts } from '../../../services/searchService';
 import { debounce } from 'lodash';
+import { useSearchParams } from "react-router-dom";
 
 const { Sider, Content } = Layout;
 
 const Search = () => {
   const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(false); 
+  const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
     categories: [],
     brands: [],
@@ -23,18 +24,30 @@ const Search = () => {
     keyword: "",
   });
 
-  const [currentPage, setCurrentPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialPage = parseInt(searchParams.get("page")) || 1;
+  const [currentPage, setCurrentPage] = useState(initialPage);
+
   const [totalProducts, setTotalProducts] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
 
   const filtersRef = useRef(filters);
 
   useEffect(() => {
-    loadAllProducts(currentPage);
+    if (Object.values(filtersRef.current).some(filter => filter)) {
+      handleFilterChange(filtersRef.current, currentPage);
+    } else {
+      loadAllProducts(currentPage);
+    }
   }, [currentPage]);
+  useEffect(() => {
+    const page = parseInt(searchParams.get("page")) || 1;
+    setCurrentPage(page);
+  }, [searchParams]);
+
 
   const loadAllProducts = async (page) => {
-    setLoading(true); 
+    setLoading(true);
     try {
       const { products, total } = await fetchAllProducts(page);
       setProducts(products || []);
@@ -42,12 +55,14 @@ const Search = () => {
     } catch (error) {
       console.error("Error fetching products:", error);
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   };
 
   const handlePageChange = async (page) => {
     setCurrentPage(page);
+    setSearchParams({ page });
+
     if (Object.values(filtersRef.current).some(filter => filter)) {
       await handleFilterChange(filtersRef.current, page);
     } else {
@@ -55,9 +70,10 @@ const Search = () => {
     }
   };
 
+
   const handleFilterChange = useCallback(
     async (newFilters, page = currentPage) => {
-      setLoading(true); 
+      setLoading(true);
       const updatedFilters = {
         ...filtersRef.current,
         ...newFilters,
@@ -65,8 +81,8 @@ const Search = () => {
         keyword: newFilters.keyword ?? filtersRef.current.keyword
       };
 
-      filtersRef.current = updatedFilters; 
-      setFilters(updatedFilters); 
+      filtersRef.current = updatedFilters;
+      setFilters(updatedFilters);
 
       if (Object.values(updatedFilters).every(value => !value || (Array.isArray(value) && value.length === 0))) {
         await loadAllProducts(page);
@@ -110,7 +126,7 @@ const Search = () => {
   };
 
   const handleSortChange = (sortBy) => {
-    filtersRef.current.sortBy = sortBy; 
+    filtersRef.current.sortBy = sortBy;
     setFilters((prev) => ({ ...prev, sortBy }));
     handleFilterChange({ sortBy });
   };
@@ -121,7 +137,7 @@ const Search = () => {
         <Header style={{ padding: 0, marginBottom: 10 }}>
           <ResultsHeader
             resultsCount={totalProducts}
-            keyword={searchTerm} 
+            keyword={searchTerm}
             onKeywordChange={handleKeywordChange}
             onSortChange={handleSortChange}
             currentSort={filters.sortBy}

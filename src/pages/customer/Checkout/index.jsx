@@ -13,7 +13,6 @@ import { fetchVoucherWithPrice } from "../../../services/voucherService";
 import { fetchAddressByUser } from "../../../services/addressService";
 import { useSelector } from "react-redux";
 const Checkout = () => {
-  console.count("Checkout component renders");
   const location = useLocation();
   const selectedItems = location.state?.selectedItems || [];
   const navigate = useNavigate();
@@ -30,7 +29,7 @@ const Checkout = () => {
   const [selectedAddress, setSelectedAddress] = useState(null);
   const [isModalAddressVisible, setIsModalAddressVisible] = useState(false);
   const user = useSelector((state) => state.account.user);
-  console.log(user)
+  console.log(selectedItems)
   useEffect(() => {
     if (user?.userID) {
       fetchAddresses(user.userID);
@@ -341,7 +340,8 @@ const Checkout = () => {
             {productDetails.map((product, index) => (
               <div key={product.detail?.productDetailID || `product-${index}`}>
                 <div className="checkout-summary__item">
-                  <Image src={product.image} className="checkout-summary__image" width={120} />
+                  <Image src={product.image} className="checkout-summary__image" width={120} 
+                  />
                   <div className="checkout-summary__details">
                     <p className="checkout-summary__product-name">{product.name}</p>
                     <p>{`${product.detail.color} / ${product.detail.size.replace("SIZE_", "")}`}</p>
@@ -370,11 +370,11 @@ const Checkout = () => {
               <span>
                 {selectedVoucher ? (
                   selectedVoucher.freeShipping ? (
-                    `- ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(shippingCost)} (Freeship) `
+                    `- ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(shippingCost)} `
                   ) : selectedVoucher.discountType === "PERCENT" ? (
                     ` - ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
                       (selectedVoucher.discountValue / 100) * productDetails.reduce((total, product) => total + product.quantity * product.price, 0)
-                    )} (${selectedVoucher.discountValue}%) `
+                    )} `
                   ) : (
                     ` (-${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(selectedVoucher.discountValue)})`
                   )
