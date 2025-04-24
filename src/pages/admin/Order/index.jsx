@@ -1,19 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import {
-  Card,
-  Row,
-  Col,
-  Tabs,
-  Input,
-  Table,
-  Tag,
-  Typography,
-  Select,
-  DatePicker,
-  Statistic,
-  message,
-} from 'antd';
+import { Card, Row, Col, Tabs, Typography, message } from 'antd';
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -44,11 +31,13 @@ import {
   getTotalOrdersByYear,
   filterOrders,
 } from '../../../services/orderService';
+import OrderStats from './components/OrderStats';
+import OrderFilters from './components/OrderFilters';
+import OrderTable from './components/OrderTable';
 import { currencyFormat } from '../../../utils/helper';
-import { getStatusColor, STATUS_OPTION } from '../../../constants/orderConstant';
 
 const { Text } = Typography;
-const { RangePicker } = DatePicker;
+
 const OrderDashboard = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -165,10 +154,17 @@ const OrderDashboard = () => {
   };
 
   useEffect(() => {
+    console.log('Fetching orders with params:', {
+      activeTimeTab,
+      currentPage,
+      pageSize,
+      isActiveSearch,
+      dateRange,
+      orders
+    });
     fetchOrders();
   }, [activeTimeTab, currentPage, pageSize, isActiveSearch, dateRange, activeStatusOption, sortOption]);
 
-  // Giữ nguyên useEffect cho các thống kê
   useEffect(() => {
     const fetchStats = async () => {
       try {
@@ -221,48 +217,6 @@ const OrderDashboard = () => {
     fetchStats();
   }, [activeTimeTab]);
 
-  const columns = [
-    {
-      title: 'ID',
-      dataIndex: 'code',
-      key: 'code',
-      render: (code) => `#${code}`,
-    },
-    {
-      title: 'Customer',
-      dataIndex: 'user',
-      key: 'user',
-      render: (user) => (user?.name ? user.name : 'N/A'),
-    },
-    {
-      title: 'Date',
-      dataIndex: 'orderDate',
-      key: 'orderDate',
-    },
-    {
-      title: 'Total',
-      dataIndex: 'total',
-      key: 'total',
-      render: (total) => <Text strong>{currencyFormat(total)}</Text>,
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status) => (
-        <Tag color={getStatusColor(status)} style={{ fontWeight: 'bold', padding: '4px 8px' }}>
-          {status}
-        </Tag>
-      ),
-    },
-    {
-      title: 'Shipping Address',
-      dataIndex: 'shippingAddress',
-      key: 'shippingAddress',
-      render: (addr) => addr || 'N/A',
-    },
-  ];
-
   if (isDetailView) {
     return <Outlet />;
   }
@@ -272,13 +226,6 @@ const OrderDashboard = () => {
     { key: 'day', label: 'Day' },
     { key: 'month', label: 'Month' },
     { key: 'year', label: 'Year' },
-  ];
-
-  const sortOptions = [
-    { value: 'newest', label: 'Newest' },
-    { value: 'oldest', label: 'Oldest' },
-    { value: 'highestTotal', label: 'Highest Total' },
-    { value: 'lowestTotal', label: 'Lowest Total' },
   ];
 
   const handleTimeTabChange = (key) => {
@@ -312,6 +259,11 @@ const OrderDashboard = () => {
     setCurrentPage(1);
   };
 
+  const handlePageChange = (page, size) => {
+    setCurrentPage(page);
+    setPageSize(size);
+  };
+
   return (
     <div className="order-dashboard">
       <Card className="order-dashboard__content-card">
@@ -338,109 +290,29 @@ const OrderDashboard = () => {
           </Col>
         </Row>
 
-        <Row gutter={[16, 16]} className="stats-row" style={{ marginBottom: '16px' }}>
-          {stats.map((stat) => (
-            <Col xs={24} sm={12} lg={6} key={stat.title}>
-              <Card
-                className="stat-card"
-                bordered={false}
-                style={{
-                  backgroundColor: stat.color,
-                  borderLeft: `4px solid ${stat.borderColor}`,
-                  borderRadius: '8px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.09)',
-                }}
-              >
-                <Statistic
-                  title={<Text strong>{stat.title}</Text>}
-                  value={stat.value}
-                  prefix={stat.icon}
-                  valueStyle={{ color: '#262626', fontSize: '24px', fontWeight: 'bold' }}
-                />
-              </Card>
-            </Col>
-          ))}
-        </Row>
+        <OrderStats stats={stats} />
 
         <div style={{ padding: '0 0px' }}>
-          <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
-            <Col xs={24} sm={12} lg={6}>
-              <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                Search
-              </Text>
-              <Input.Search
-                placeholder="Order ID or Customer Name"
-                allowClear
-                onSearch={handleSearch}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-              />
-            </Col>
+          <OrderFilters
+            activeTimeTab={activeTimeTab}
+            activeStatusOption={activeStatusOption}
+            sortOption={sortOption}
+            searchText={searchText}
+            dateRange={dateRange}
+            onTimeTabChange={handleTimeTabChange}
+            onStatusOptionChange={handleStatusOptionChange}
+            onSortChange={handleSortChange}
+            onSearch={handleSearch}
+            onDateRangeChange={handleDateRangeChange}
+          />
 
-            <Col xs={24} sm={12} lg={6}>
-              <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                Sort
-              </Text>
-              <Select
-                placeholder="Sort Orders"
-                style={{ width: '100%' }}
-                value={sortOption}
-                onChange={handleSortChange}
-              >
-                {sortOptions.map((opt) => (
-                  <Select.Option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Col>
-
-            <Col xs={24} sm={12} lg={6}>
-              <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                Date Range
-              </Text>
-              <RangePicker 
-                style={{ width: '100%' }} 
-                value={dateRange}
-                onChange={handleDateRangeChange}
-              />
-            </Col>
-            <Col xs={24} sm={12} lg={6}>
-              <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                Status
-              </Text>
-              <Select
-                value={activeStatusOption}
-                onChange={handleStatusOptionChange}
-                style={{ width: '100%' }}
-              >
-                {STATUS_OPTION.map((tab) => (
-                  <Select.Option key={tab.key} value={tab.key}>
-                    {tab.label}
-                  </Select.Option>
-                ))}
-              </Select>
-            </Col>
-          </Row>
-
-          <Table
-            onRow={(record) => ({
-              onClick: () => navigate(`/admin/orders/${record.orderID}`),
-              style: { cursor: 'pointer' },
-            })}
-            columns={columns}
-            dataSource={orders}
-            pagination={{
-              current: currentPage,
-              pageSize: pageSize,
-              total: totalOrdersCount,
-              onChange: (page, size) => {
-                setCurrentPage(page);
-                setPageSize(size);
-              },
-              showSizeChanger: true,
-              showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            }}
+          <OrderTable
+            orders={orders}
+            totalOrdersCount={totalOrdersCount}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            onPageChange={handlePageChange}
+            onNavigate={navigate}
           />
         </div>
       </Card>
