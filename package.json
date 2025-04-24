@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "@ant-design/icons": "^5.5.2",
+    "@ant-design/icons-svg": "^4.4.2",
     "@ant-design/plots": "^2.3.3",
     "@reduxjs/toolkit": "^2.6.0",
     "antd": "^5.22.7",

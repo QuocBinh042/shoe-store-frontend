@@ -172,3 +172,8 @@ export const countOrdersWithPromotions = async () => {
     const data = await fetchData('orders/count/with-promotions');
     return data.data;
 };
+
+export const getOrderById = async (id) => {
+    const data = await fetchData(`orders/${id}`);
+    return data;
+};
