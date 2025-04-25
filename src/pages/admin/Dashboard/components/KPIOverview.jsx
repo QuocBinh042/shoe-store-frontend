@@ -1,87 +1,90 @@
-import { Row, Col, Card, Statistic, Typography } from 'antd';
-import { DollarOutlined, ShoppingCartOutlined, UserOutlined, ArrowUpOutlined } from '@ant-design/icons';
+import React from 'react';
+import { Row, Col, Card, Statistic, Typography, Select, Skeleton } from 'antd';
+import {
+  DollarOutlined,
+  ShoppingCartOutlined,
+  UserOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  LoadingOutlined
+} from '@ant-design/icons';
 
-const { Text } = Typography;
+const { Title, Text } = Typography;
 
-const KPIOverview = () => {
+const KPI_CONFIG = {
+  totalRevenue: { title: 'Total Revenue', icon: <DollarOutlined />, precision: 2 },
+  totalOrders: { title: 'Total Orders', icon: <ShoppingCartOutlined />, precision: 0 },
+  avgOrderValue: { title: 'Avg. Order Value', icon: <DollarOutlined />, precision: 2 },
+  newCustomers: { title: 'New Customers', icon: <UserOutlined />, precision: 0 },
+};
+
+const formatChange = (change) => {
+  const positive = change >= 0;
+  const ArrowIcon = positive ? ArrowUpOutlined : ArrowDownOutlined;
   return (
-    <Row gutter={[16, 16]}>
-      <Col xs={24} sm={12} lg={6}>
-        <Card>
-          <Statistic
-            title="Total Revenue"
-            value={240560}
-            prefix={<DollarOutlined />}
-            precision={2}
-            valueStyle={{ color: '#3f8600' }}
-            suffix={
-              <span style={{ fontSize: '14px', marginLeft: '8px' }}>
-                <ArrowUpOutlined /> 8.2%
-              </span>
-            }
-          />
-          <div style={{ marginTop: '10px' }}>
-            <Text type="secondary">vs. previous period</Text>
-          </div>
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} lg={6}>
-        <Card>
-          <Statistic
-            title="Total Orders"
-            value={2543}
-            prefix={<ShoppingCartOutlined />}
-            valueStyle={{ color: '#3f8600' }}
-            suffix={
-              <span style={{ fontSize: '14px', marginLeft: '8px' }}>
-                <ArrowUpOutlined /> 4.7%
-              </span>
-            }
-          />
-          <div style={{ marginTop: '10px' }}>
-            <Text type="secondary">vs. previous period</Text>
-          </div>
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} lg={6}>
-        <Card>
-          <Statistic
-            title="Avg. Order Value"
-            value={94.6}
-            prefix={<DollarOutlined />}
-            precision={2}
-            valueStyle={{ color: '#3f8600' }}
-            suffix={
-              <span style={{ fontSize: '14px', marginLeft: '8px' }}>
-                <ArrowUpOutlined /> 3.1%
-              </span>
-            }
-          />
-          <div style={{ marginTop: '10px' }}>
-            <Text type="secondary">vs. previous period</Text>
-          </div>
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} lg={6}>
-        <Card>
-          <Statistic
-            title="New Customers"
-            value={368}
-            prefix={<UserOutlined />}
-            valueStyle={{ color: '#3f8600' }}
-            suffix={
-              <span style={{ fontSize: '14px', marginLeft: '8px' }}>
-                <ArrowUpOutlined /> 12.4%
-              </span>
-            }
-          />
-          <div style={{ marginTop: '10px' }}>
-            <Text type="secondary">vs. previous period</Text>
-          </div>
-        </Card>
-      </Col>
-    </Row>
+    <span style={{ marginLeft: 8, fontSize: 14, color: positive ? '#3f8600' : '#cf1322' }}>
+      <ArrowIcon /> {Math.abs(change).toFixed(1)}%
+    </span>
   );
 };
 
-export default KPIOverview; 
+const KPIOverview = ({ items, loading, timeFrame, setTimeFrame }) => {
+  const now = new Date();
+  const formattedNow = now.toLocaleString();
+
+  return (
+    <div>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'baseline',
+        marginBottom: 8
+      }}>
+        <div>
+          <Title level={4} style={{ margin: 0 }}>KPI Overview</Title>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            As of: {formattedNow}
+          </Text>
+        </div>
+        <Select
+          value={timeFrame}
+          onChange={setTimeFrame}
+          disabled={loading}
+          suffixIcon={loading ? <LoadingOutlined spin /> : undefined}
+          options={[
+            { value: 'monthly', label: 'Monthly' },
+            { value: 'weekly', label: 'Weekly' }
+          ]}
+          style={{ width: 120 }}
+        />
+      </div>
+
+      <Row gutter={[16, 16]}>
+        {Object.entries(KPI_CONFIG).map(([key, cfg]) => {
+          const itm = items.find(i => i.key === key) || { current: 0, changePercent: 0 };
+          return (
+            <Col key={key} xs={24} sm={12} lg={6}>
+              <Card>
+                <Skeleton loading={loading} active paragraph={false}>
+                  <Statistic
+                    title={cfg.title}
+                    value={itm.current}
+                    prefix={cfg.icon}
+                    precision={cfg.precision}
+                    valueStyle={{ color: itm.changePercent >= 0 ? '#3f8600' : '#cf1322' }}
+                    suffix={formatChange(itm.changePercent)}
+                  />
+                </Skeleton>
+                <div style={{ marginTop: 10 }}>
+                  <Text type="secondary">vs. previous period</Text>
+                </div>
+              </Card>
+            </Col>
+          );
+        })}
+      </Row>
+    </div>
+  );
+};
+
+export default KPIOverview;

@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+// src/pages/Dashboard.jsx
+import React, { useState, useEffect } from 'react';
 import { Tabs } from 'antd';
 import KPIOverview from './components/KPIOverview';
 import Alerts from './components/Alerts';
@@ -7,6 +8,7 @@ import Products from './components/Products';
 import Customers from './components/Customers';
 import Marketing from './components/Marketing';
 import ShippingAndInventory from './components/ShippingAndInventory';
+import { useDashboardData } from '../../../hooks/useDashboardData';
 
 const mockRevenueData = [
   { name: 'Jan', revenue: 4000, orders: 240 },
@@ -48,88 +50,94 @@ const mockMarketingData = [
 ];
 
 const Dashboard = () => {
-  const [bestSellers, setBestSellers] = useState([]);
-  const [timeFrame, setTimeFrame] = useState('monthly');
-  const [loading, setLoading] = useState(true);
-  const [alerts, setAlerts] = useState([
+  const {
+    timeFrame,
+    setTimeFrame,
+    kpiItems,
+    kpiLoading
+  } = useDashboardData('monthly');
+
+  const [alerts] = useState([
     { id: 1, type: 'warning', message: '10 products are low in stock' },
     { id: 2, type: 'info', message: '5 new orders require review' },
     { id: 3, type: 'error', message: '3 orders have shipping delays' }
   ]);
-  
+
+  const [bestSellers, setBestSellers] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch best sellers
-        const bestSellersData = [
-          { id: 1, name: 'Running Shoe X1', sold: 120, price: 89.99, revenue: 10798.80 }];
-        setBestSellers(bestSellersData.slice(0, 5));
-        
-        setLoading(false);
-      } catch (error) {
-        console.error('Error fetching dashboard data:', error);
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
+    // mock fetch best sellers
+    const best = [
+      { id: 1, name: 'Running Shoe X1', sold: 120, price: 89.99, revenue: 10798.80 }
+    ];
+    setBestSellers(best.slice(0, 5));
+    setLoading(false);
   }, []);
-  
+
   return (
-    <div style={{ padding: '8px' }}>
-      <KPIOverview />
-      
-      <div style={{ height: '16px' }} />
-      
+    <div style={{ padding: 16 }}>
+      <KPIOverview
+        items={kpiItems}
+        loading={kpiLoading}
+        timeFrame={timeFrame}
+        setTimeFrame={setTimeFrame}
+      />
+
+      <div style={{ height: 16 }} />
+
       <Alerts alerts={alerts} />
-      
-      <Tabs defaultActiveKey="1" items={[
-        {
-          key: "1",
-          label: "Revenue & Orders",
-          children: (
-            <RevenueAndOrders 
-              timeFrame={timeFrame}
-              setTimeFrame={setTimeFrame}
-              mockRevenueData={mockRevenueData}
-              mockOrderStatusData={mockOrderStatusData}
-            />
-          )
-        },
-        {
-          key: "2",
-          label: "Products",
-          children: (
-            <Products 
-              loading={loading}
-              bestSellers={bestSellers}
-            />
-          )
-        },
-        {
-          key: "3",
-          label: "Customers",
-          children: (
-            <Customers 
-              mockCustomerData={mockCustomerData}
-            />
-          )
-        },
-        {
-          key: "4",
-          label: "Marketing",
-          children: (
-            <Marketing 
-              mockMarketingData={mockMarketingData}
-            />
-          )
-        },
-        {
-          key: "5",
-          label: "Shipping & Inventory",
-          children: <ShippingAndInventory />
-        }
-      ]} />
+
+      <Tabs
+        defaultActiveKey="1"
+        items={[
+          {
+            key: '1',
+            label: 'Revenue & Orders',
+            children: (
+              <RevenueAndOrders
+                timeFrame={timeFrame}
+                setTimeFrame={setTimeFrame}
+                mockRevenueData={mockRevenueData}
+                mockOrderStatusData={mockOrderStatusData}
+              />
+            )
+          },
+          {
+            key: '2',
+            label: 'Products',
+            children: (
+              <Products
+                loading={loading}
+                bestSellers={bestSellers}
+              />
+            )
+          },
+          {
+            key: '3',
+            label: 'Customers',
+            children: (
+              <Customers
+                mockCustomerData={mockCustomerData}
+              />
+            )
+          },
+          {
+            key: '4',
+            label: 'Marketing',
+            children: (
+              <Marketing
+                mockMarketingData={mockMarketingData}
+              />
+            )
+          },
+          {
+            key: '5',
+            label: 'Shipping & Inventory',
+            children: <ShippingAndInventory />
+          }
+        ]}
+      />
     </div>
   );
 };
