@@ -8,3 +8,10 @@ export const getKpiOverview = async (timeFrame = 'monthly') => {
   }
   return response.data.items;
 };
+
+
+export const getRevenueAndOrders = async (timeFrame) => {
+  const res = await fetchData(`/admin/dashboard/revenue-orders?timeFrame=${timeFrame}`);
+  if (res.statusCode !== 200) throw new Error(res.message);
+  return res.data; 
+};

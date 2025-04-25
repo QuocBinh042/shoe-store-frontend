@@ -1,5 +1,5 @@
 import React from 'react';
-import { Row, Col, Card, Statistic, Typography, Select, Skeleton } from 'antd';
+import { Row, Col, Card, Statistic, Typography, Select } from 'antd';
 import {
   DollarOutlined,
   ShoppingCartOutlined,
@@ -12,10 +12,10 @@ import {
 const { Title, Text } = Typography;
 
 const KPI_CONFIG = {
-  totalRevenue: { title: 'Total Revenue', icon: <DollarOutlined />, precision: 2 },
-  totalOrders: { title: 'Total Orders', icon: <ShoppingCartOutlined />, precision: 0 },
-  avgOrderValue: { title: 'Avg. Order Value', icon: <DollarOutlined />, precision: 2 },
-  newCustomers: { title: 'New Customers', icon: <UserOutlined />, precision: 0 },
+  totalRevenue:    { title: 'Total Revenue',    icon: <DollarOutlined />,       precision: 2 },
+  totalOrders:     { title: 'Total Orders',     icon: <ShoppingCartOutlined />, precision: 0 },
+  avgOrderValue:   { title: 'Avg. Order Value', icon: <DollarOutlined />,       precision: 2 },
+  newCustomers:    { title: 'New Customers',    icon: <UserOutlined />,         precision: 0 },
 };
 
 const formatChange = (change) => {
@@ -53,7 +53,7 @@ const KPIOverview = ({ items, loading, timeFrame, setTimeFrame }) => {
           suffixIcon={loading ? <LoadingOutlined spin /> : undefined}
           options={[
             { value: 'monthly', label: 'Monthly' },
-            { value: 'weekly', label: 'Weekly' }
+            { value: 'weekly',  label: 'Weekly'  }
           ]}
           style={{ width: 120 }}
         />
@@ -65,16 +65,14 @@ const KPIOverview = ({ items, loading, timeFrame, setTimeFrame }) => {
           return (
             <Col key={key} xs={24} sm={12} lg={6}>
               <Card>
-                <Skeleton loading={loading} active paragraph={false}>
-                  <Statistic
-                    title={cfg.title}
-                    value={itm.current}
-                    prefix={cfg.icon}
-                    precision={cfg.precision}
-                    valueStyle={{ color: itm.changePercent >= 0 ? '#3f8600' : '#cf1322' }}
-                    suffix={formatChange(itm.changePercent)}
-                  />
-                </Skeleton>
+                <Statistic
+                  title={cfg.title}
+                  value={itm.current}
+                  prefix={cfg.icon}
+                  precision={cfg.precision}
+                  valueStyle={{ color: itm.changePercent >= 0 ? '#3f8600' : '#cf1322' }}
+                  suffix={formatChange(itm.changePercent)}
+                />
                 <div style={{ marginTop: 10 }}>
                   <Text type="secondary">vs. previous period</Text>
                 </div>
