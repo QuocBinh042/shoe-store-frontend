@@ -46,3 +46,11 @@ export const getCustomerMetrics = async (year = new Date().getFullYear()) => {
   }
   return res.data; 
 };
+
+export const getInventoryForecast = async (page, pageSize) => {
+  const response = await fetchData(`${BASE}/inventory-forecast?page=${page}&pageSize=${pageSize}`);
+  if (response.statusCode !== 200) {
+    throw new Error(response.message || 'Failed to load inventory forecast');
+  }
+  return response.data; 
+};

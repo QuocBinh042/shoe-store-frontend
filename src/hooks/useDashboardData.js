@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { notification } from 'antd';
-import { getBestSellers, getCustomerGrowth, getCustomerMetrics, getKpiOverview, getRevenueAndOrders, getStockAlerts } from '../services/dashboardService';
+import { getBestSellers, getCustomerGrowth, getCustomerMetrics, getInventoryForecast, getKpiOverview, getRevenueAndOrders, getStockAlerts } from '../services/dashboardService';
 
 export function useDashboardData(initialTimeFrame = 'monthly') {
   const [timeFrame, setTimeFrame] = useState(initialTimeFrame);
@@ -208,4 +208,46 @@ export function useCustomerDashboard(year = new Date().getFullYear()) {
   }, [year]);
 
   return { growthData, metrics, loading, error };
+}
+export function useInventoryForecast(initialPage = 1, initialPageSize = 12) {
+  const [page, setPage] = useState(initialPage);
+  const [pageSize, setPageSize] = useState(initialPageSize);
+  const [items, setItems] = useState([]);
+  const [totalElements, setTotalElements] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let canceled = false;
+    async function fetchData() {
+      setLoading(true);
+      try {
+        const { items, totalElements } = await getInventoryForecast(page, pageSize);
+        if (canceled) return;
+        setItems(items);
+        setTotalElements(totalElements);
+      } catch (err) {
+        if (!canceled) {
+          notification.error({
+            message: 'Failed to load Inventory Forecast',
+            description: err.message || 'Unknown error'
+          });
+        }
+      } finally {
+        if (!canceled) setLoading(false);
+      }
+    }
+    fetchData();
+    return () => { canceled = true; };
+  }, [page, pageSize]);
+
+  return {
+    items,
+    totalElements,
+    page, 
+    pageSize,
+    loading,
+    setPage,
+    setPageSize,
+    refetch: () => setPage(1)
+  };
 }
