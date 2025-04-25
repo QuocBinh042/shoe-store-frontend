@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { notification } from 'antd';
-import { getBestSellers, getKpiOverview, getRevenueAndOrders, getStockAlerts } from '../services/dashboardService';
+import { getBestSellers, getCustomerGrowth, getCustomerMetrics, getKpiOverview, getRevenueAndOrders, getStockAlerts } from '../services/dashboardService';
 
 export function useDashboardData(initialTimeFrame = 'monthly') {
   const [timeFrame, setTimeFrame] = useState(initialTimeFrame);
@@ -162,4 +162,50 @@ export function useStockAlerts(initialThreshold = 10, initialPage = 1) {
     },
     loading
   };
+}
+
+export function useCustomerDashboard(year = new Date().getFullYear()) {
+  const [growthData, setGrowthData] = useState([]);
+  const [metrics, setMetrics] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    async function fetchAll() {
+      try {
+        setLoading(true);
+        setError(false);
+
+        const [rawGrowth, rawMetrics] = await Promise.all([
+          getCustomerGrowth(year),
+          getCustomerMetrics(year),
+        ]);
+
+        if (!active) return;
+
+        setGrowthData(rawGrowth.map(d => ({
+          name: d.month,
+          new: d.newCustomers,
+          returning: d.returningCustomers,
+        })));
+
+        setMetrics({
+          retentionRate: rawMetrics.retentionRate,
+          avgLifetimeValue: rawMetrics.avgLifetimeValue,
+          repeatPurchaseRate: rawMetrics.repeatPurchaseRate,
+        });
+      } catch (e) {
+        console.error('Customer dashboard error', e);
+        if (active) setError(true);
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
+
+    fetchAll();
+    return () => { active = false; };
+  }, [year]);
+
+  return { growthData, metrics, loading, error };
 }
