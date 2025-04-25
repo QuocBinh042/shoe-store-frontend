@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { notification } from 'antd';
-import { getKpiOverview, getRevenueAndOrders } from '../services/dashboardService';
+import { getBestSellers, getKpiOverview, getRevenueAndOrders, getStockAlerts } from '../services/dashboardService';
 
 export function useDashboardData(initialTimeFrame = 'monthly') {
   const [timeFrame, setTimeFrame] = useState(initialTimeFrame);
@@ -40,9 +40,9 @@ export function useDashboardData(initialTimeFrame = 'monthly') {
 
 export function useRevenueData(initialFrame = 'monthly') {
   const [timeFrame, setTimeFrame] = useState(initialFrame);
-  const [series, setSeries]       = useState([]);
-  const [status, setStatus]       = useState([]);
-  const [loading, setLoading]     = useState(false);
+  const [series, setSeries] = useState([]);
+  const [status, setStatus] = useState([]);
+  const [loading, setLoading] = useState(false);
   const cacheRef = useRef({});    // cache data per timeFrame
 
   useEffect(() => {
@@ -76,4 +76,90 @@ export function useRevenueData(initialFrame = 'monthly') {
   }, [timeFrame]);
 
   return { timeFrame, setTimeFrame, series, status, loading };
+}
+
+export function useBestSellers(initialLimit = 5, initialPage = 1) {
+  const [limit, setLimit] = useState(initialLimit);
+  const [page, setPage] = useState(initialPage);
+  const [data, setData] = useState({ items: [], totalElements: 0, currentPage: 1, pageSize: limit });
+  const [loading, setLoading] = useState(false);
+  const cacheRef = useRef({});
+
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    const key = `bs_${limit}_${page}`;
+    if (cacheRef.current[key]) {
+      setData(cacheRef.current[key]);
+      setLoading(false);
+      return;
+    }
+    try {
+      const res = await getBestSellers(limit, page);
+      cacheRef.current[key] = res;
+      setData(res);
+    } catch (err) {
+      notification.error({ message: 'Load Best Sellers failed', description: err.message });
+    } finally {
+      setLoading(false);
+    }
+  }, [limit, page]);
+
+  useEffect(() => { fetch(); }, [fetch]);
+
+  return {
+    limit,
+    setLimit: (l) => { setLimit(l); setPage(1); },
+    page,
+    setPage,
+    bestSellers: data.items,
+    pagination: {
+      current: data.currentPage,
+      pageSize: data.pageSize,
+      total: data.totalElements
+    },
+    loading
+  };
+}
+
+export function useStockAlerts(initialThreshold = 10, initialPage = 1) {
+  const [threshold, setThreshold] = useState(initialThreshold);
+  const [page, setPage] = useState(initialPage);
+  const [data, setData] = useState({ items: [], totalElements: 0, currentPage: 1, pageSize: initialPage });
+  const [loading, setLoading] = useState(false);
+  const cacheRef = useRef({});
+
+  const fetch = useCallback(async () => {
+    setLoading(true);
+    const key = `sa_${threshold}_${page}`;
+    if (cacheRef.current[key]) {
+      setData(cacheRef.current[key]);
+      setLoading(false);
+      return;
+    }
+    try {
+      const res = await getStockAlerts(threshold, page);
+      cacheRef.current[key] = res;
+      setData(res);
+    } catch (err) {
+      notification.error({ message: 'Load Stock Alerts failed', description: err.message });
+    } finally {
+      setLoading(false);
+    }
+  }, [threshold, page]);
+
+  useEffect(() => { fetch(); }, [fetch]);
+
+  return {
+    threshold,
+    setThreshold: (t) => { setThreshold(t); setPage(1); },
+    page,
+    setPage,
+    stockAlerts: data.items,
+    pagination: {
+      current: data.currentPage,
+      pageSize: data.pageSize,
+      total: data.totalElements
+    },
+    loading
+  };
 }

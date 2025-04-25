@@ -1,4 +1,3 @@
-// src/pages/Dashboard.jsx
 import React, { useState, useEffect } from 'react';
 import { Tabs } from 'antd';
 
@@ -10,7 +9,7 @@ import Marketing from './components/Marketing';
 import ShippingAndInventory from './components/ShippingAndInventory';
 
 import { useDashboardData } from '../../../hooks/useDashboardData';
-
+import './Dashboard.scss'; 
 const mockCustomerData = [
   { name: 'Jan', new: 120, returning: 80 },
   { name: 'Feb', new: 100, returning: 90 },

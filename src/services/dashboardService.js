@@ -13,5 +13,18 @@ export const getKpiOverview = async (timeFrame = 'monthly') => {
 export const getRevenueAndOrders = async (timeFrame) => {
   const res = await fetchData(`/admin/dashboard/revenue-orders?timeFrame=${timeFrame}`);
   if (res.statusCode !== 200) throw new Error(res.message);
-  return res.data; 
+  return res.data;
+};
+
+export const getBestSellers = async (limit, page) => {
+  const res = await fetchData(`/admin/dashboard/best-sellers?page=${page}&pageSize=${limit}`);
+  if (res.statusCode !== 200) throw new Error(res.message);
+  console.log('Best Sellers:', res.data.items);
+  return res.data;
+};
+
+export const getStockAlerts = async (threshold, page) => {
+  const res = await fetchData(`/admin/dashboard/stock-alerts?threshold=${threshold}&page=${page}`);
+  if (res.statusCode !== 200) throw new Error(res.message);
+  return res.data;
 };
