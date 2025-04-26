@@ -80,11 +80,11 @@ const Dashboard = () => {
             label: 'Customers',
             children: <Customers mockCustomerData={mockCustomerData} />
           },
-          {
-            key: '4',
-            label: 'Marketing',
-            children: <Marketing mockMarketingData={mockMarketingData} />
-          },
+          // {
+          //   key: '4',
+          //   label: 'Marketing',
+          //   children: <Marketing mockMarketingData={mockMarketingData} />
+          // },
           {
             key: '5',
             label: 'Shipping & Inventory',

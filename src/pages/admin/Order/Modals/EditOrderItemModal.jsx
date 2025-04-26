@@ -1,59 +1,69 @@
-import React, { useEffect } from 'react';
-import { Modal, Form, InputNumber, Select, Typography } from 'antd';
+import React from 'react';
+import { Modal, Form, Input, Button, Select, InputNumber } from 'antd';
 
-const { Text } = Typography;
-
-const EditOrderItemModal = ({ open, onCancel, onSubmit, initialValues, colorOptions = [], sizeOptions = [] }) => {
+const EditOrderItemModal = ({ 
+  open, 
+  onCancel, 
+  onSubmit, 
+  initialValues, 
+  colorOptions, 
+  sizeOptions,
+  disabled 
+}) => {
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    if (open) form.setFieldsValue(initialValues);
-  }, [open, initialValues, form]);
-
-  const handleOk = () => {
-    form.validateFields().then((values) => {
+  const handleSubmit = () => {
+    form.validateFields().then(values => {
       onSubmit(values);
+      form.resetFields();
     });
   };
 
   return (
     <Modal
-      title={<Text strong style={{ fontSize: 18 }}>Edit Order Item</Text>}
+      title="Edit Order Item"
       open={open}
-      onOk={handleOk}
       onCancel={onCancel}
-      okText="Save"
-      cancelText="Cancel"
-      styles={{ body: { padding: 24 } }}
-      style={{ top: 100 }}
+      footer={[
+        <Button key="cancel" onClick={onCancel}>
+          Cancel
+        </Button>,
+        <Button 
+          key="submit" 
+          type="primary" 
+          onClick={handleSubmit}
+          disabled={disabled}
+        >
+          Save Changes
+        </Button>,
+      ]}
     >
       <Form
         form={form}
         layout="vertical"
-        validateTrigger="onBlur"
+        initialValues={initialValues}
+        disabled={disabled}
       >
         <Form.Item
-          name="quantity"
-          label="Quantity"
-          rules={[{ required: true, message: 'Quantity is required' }]}
+          name="color"
+          label="Color"
+          rules={[{ required: true, message: 'Please select color!' }]}
         >
-          <InputNumber min={1} max={100} style={{ width: '100%' }} />
+          <Select options={colorOptions.map(color => ({ label: color, value: color }))} />
         </Form.Item>
-
-        <Form.Item name="color" label="Color">
-          <Select placeholder="Select color" allowClear>
-            {colorOptions.map((color) => (
-              <Select.Option key={color} value={color}>{color}</Select.Option>
-            ))}
-          </Select>
+        <Form.Item
+          name="size"
+          label="Size"
+          rules={[{ required: true, message: 'Please select size!' }]}
+        >
+          <Select options={sizeOptions.map(size => ({ label: size, value: size }))} />
         </Form.Item>
-
-        <Form.Item name="size" label="Size">
-          <Select placeholder="Select size" allowClear>
-            {sizeOptions.map((size) => (
-              <Select.Option key={size} value={size}>{size}</Select.Option>
-            ))}
-          </Select>
+        <Form.Item
+          name="qty"
+          label="Quantity"
+          rules={[{ required: true, message: 'Please input quantity!' }]}
+        >
+          <InputNumber min={1} style={{ width: '100%' }} />
         </Form.Item>
       </Form>
     </Modal>

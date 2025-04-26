@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Card, Row, Col } from 'antd';
+import { Card, Row, Col, message } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import OrderHeader from './OrderHeader';
 import OrderItems from './OrderItems';
@@ -14,6 +14,7 @@ import EditCustomerModal from '../Modals/EditCustomerModal';
 import EditShippingModal from '../Modals/EditShippingModal';
 import EditOrderItemModal from '../Modals/EditOrderItemModal';
 import { getOrderById } from '../../../../services/orderService';
+import useOrderStatus from '../../../../hooks/useOrderStatus';
 
 const OrderDetail = () => {
   const { id: orderID } = useParams();
@@ -24,16 +25,14 @@ const OrderDetail = () => {
   const [editItemModalOpen, setEditItemModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [order, setOrder] = useState(null);
-  
+  const { updateOrderStatus, loading, error } = useOrderStatus();
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await getOrderDetailByOrder(orderID);
         const orderData = await getOrderById(orderID);
-        console.log(orderID)
         setOrder(orderData.data);
-        console.log('Order data:', orderData);
-        console.log('Order details response:', response);
         if (response.statusCode === 200) {
           setOrderDetails(response.data);
         } else {
@@ -48,20 +47,31 @@ const OrderDetail = () => {
 
   if (!orderDetails.length) return null;
 
-  console.log('Order:', order);
   const user = order?.user;
   const isPending = order.status === 'PENDING';
+  const isDelivered = order.status === 'DELIVERED';
 
   const buildTimeline = (order) => {
-    const currentIndex = ORDER_STATUSES.indexOf(order.status);
-    if (currentIndex === -1) return [];
+    const result = [];
 
-    return ORDER_STATUSES.slice(0, currentIndex + 1).map((status, index) => ({
-      time: index === 0 ? order.orderDate : '',
-      title: ORDER_STATUS_DETAILS[status].title,
-      description: ORDER_STATUS_DETAILS[status].description,
-    }));
+    for (let i = 0; i < ORDER_STATUSES.length; i++) {
+      const status = ORDER_STATUSES[i];
+
+      const meta = ORDER_STATUS_DETAILS[status] || {};
+      result.push({
+        title: meta.title || status,
+        description: meta.description || '',
+        time: i === 0 ? order.orderDate : '',
+      });
+
+      if (status === order.status) {
+        break;
+      }
+    }
+
+    return result;
   };
+
 
   const mappedOrderData = {
     orderNumber: order.code,
@@ -101,9 +111,14 @@ const OrderDetail = () => {
     navigate('/admin/orders');
   };
 
-  const handleOrderAction = (nextStatus) => {
-    console.log('Update order to:', nextStatus);
-    // TODO: call update API here
+  const handleOrderAction = async (nextStatus) => {
+    try {
+      const updatedOrder = await updateOrderStatus(orderID, nextStatus);
+      setOrder(prev => ({ ...prev, status: updatedOrder.status }));
+      message.success('Order status updated successfully');
+    } catch (err) {
+      message.error(err.message || 'Failed to update order status');
+    }
   };
 
   return (
@@ -135,22 +150,31 @@ const OrderDetail = () => {
                 setEditingItem(item);
                 setEditItemModalOpen(true);
               }}
-              editable={isPending}
+              editable={isPending && !isDelivered}
             />
           </Col>
 
           <Col xs={24} lg={8}>
-            <CustomerInfo {...mappedOrderData.customer} onEdit={() => setCustomerModalOpen(true)} editable={isPending} />
-            <ShippingInfo {...mappedOrderData.shipping} onEdit={() => setEditShippingModalOpen(true)} editable={isPending} />
+            <CustomerInfo
+              {...mappedOrderData.customer}
+              onEdit={() => setCustomerModalOpen(true)}
+              editable={isPending && !isDelivered}
+            />
+            <ShippingInfo
+              {...mappedOrderData.shipping}
+              onEdit={() => setEditShippingModalOpen(true)}
+              editable={isPending && !isDelivered}
+            />
           </Col>
         </Row>
 
         <Row style={{ marginTop: 24 }}>
           <Col span={24}>
             <OrderTimeline
-              items={mappedOrderData.timeline}
+              orderId={order.orderID}            // ← đây
               currentStatus={order.status}
               onAction={handleOrderAction}
+              loading={loading}
             />
           </Col>
         </Row>
@@ -168,6 +192,7 @@ const OrderDetail = () => {
           email: mappedOrderData.customer.email,
           phone: mappedOrderData.customer.phone,
         }}
+        disabled={isDelivered}
       />
 
       <EditShippingModal
@@ -178,6 +203,7 @@ const OrderDetail = () => {
           setEditShippingModalOpen(false);
         }}
         initialValues={mappedOrderData.shipping}
+        disabled={isDelivered}
       />
 
       <EditOrderItemModal
@@ -190,6 +216,7 @@ const OrderDetail = () => {
         initialValues={editingItem}
         colorOptions={COLOR_OPTIONS.map(opt => opt.value)}
         sizeOptions={SIZE_OPTIONS.map(opt => opt.value)}
+        disabled={isDelivered}
       />
     </div>
   );

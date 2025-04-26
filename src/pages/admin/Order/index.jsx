@@ -217,6 +217,22 @@ const OrderDashboard = () => {
     fetchStats();
   }, [activeTimeTab]);
 
+  useEffect(() => {
+    // Check if we're returning from order detail with an update
+    if (location.state?.shouldRefresh) {
+      fetchOrders();
+      // Clear the state to prevent unnecessary refreshes
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    // Refresh data when returning from detail view
+    if (!isDetailView) {
+      fetchOrders();
+    }
+  }, [isDetailView]);
+
   if (isDetailView) {
     return <Outlet />;
   }

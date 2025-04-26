@@ -13,7 +13,7 @@ export const ORDER_STATUSES = [
   'PROCESSING',
   'SHIPPED',
   'DELIVERED',
-  'CANCELLED'
+  'CANCELED'
 ];
 
 export const ORDER_STATUS_DETAILS = {
@@ -37,10 +37,10 @@ export const ORDER_STATUS_DETAILS = {
     title: 'Delivered',
     description: 'Order has been delivered to customer.'
   },
-  CANCELLED: {
-    title: 'Order Cancelled',
-    description: 'Order was cancelled.'
-  }
+  CANCELED: {
+    title: 'Canceled',
+    description: 'Order was canceled by user or admin.',
+  },
 };
 
 export const getStatusColor = (status) => {

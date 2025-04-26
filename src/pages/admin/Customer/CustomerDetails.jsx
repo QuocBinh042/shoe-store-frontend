@@ -73,16 +73,17 @@ const CustomerDetail = () => {
     const fetchOrders = async () => {
       try {
         const ordersResponse = await fetchOrderByUser(customerId);
-        console.log("data: ", ordersResponse)
+        
         if (ordersResponse) {
           const formattedOrders = ordersResponse.map((order) => ({
-            key: order.orderID,
-            order: `#${order.orderID}`,
-            date: order.orderDate,
-            status: order.status,
-            statusColor: order.status === 'DELIVERED' ? 'blue' : 'red',
-            spent: order.total,
+            key: order.order.orderID,
+            order: `#${order.order.orderID}`,
+            date: order.order.orderDate,
+            status: order.order.status,
+            statusColor: order.order.status === 'DELIVERED' ? 'blue' : 'red',
+            spent: order.order.total,
           }));
+          console.log(formattedOrders)
           setOrdersData(formattedOrders);
         }
       } catch (error) {
@@ -276,7 +277,7 @@ const CustomerDetail = () => {
               </Row>
               <Table
                 onRow={(record) => ({
-                  onClick: () => navigate(`/admin/orders/${record.orderId}`),
+                  onClick: () => navigate(`/admin/orders/${record.key}`),
                   style: { cursor: 'pointer' },
                 })}
                 columns={ordersColumns}
