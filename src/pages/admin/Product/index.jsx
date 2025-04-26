@@ -144,6 +144,7 @@ const ProductManager = () => {
         };
         const productResponse = await getAllProducts(params);
         if (productResponse.statusCode === 200) {
+          
           const { items, totalElements, currentPage, pageSize } = productResponse.data;
           setProducts(items);
           setPagination((prev) => ({
@@ -282,9 +283,9 @@ const ProductManager = () => {
         <Space>
           {record.imageURL && record.imageURL.length > 0 && (
             <img
-              src={buildCloudinaryUrl(record.imageURL[0], { width: 40, height: 40, crop: 'fill' })}
+              src={buildCloudinaryUrl(`project_ShoeStore/ImageProduct/${record.productID}/${record.imageURL[0]}`, { width: 70, height: 60, crop: 'fill' })}
               alt={record.productName}
-              style={{ width: 40, height: 40, borderRadius: '50%', marginRight: 8 }}
+              style={{borderRadius: '50%', marginRight: 8 }}
             />
           )}
           <div style={{ fontWeight: 500 }}>{record.productName}</div>
