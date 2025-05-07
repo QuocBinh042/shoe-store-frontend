@@ -4,7 +4,7 @@ import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { authService } from "../../../services/authService";
-import { setUser } from "../../../redux/accountSlice";
+import { doLoginAction } from "../../../redux/accountSlice";
 
 const { Title, Text } = Typography;
 
@@ -22,25 +22,43 @@ const LoginPage = () => {
       if (response?.statusCode === 200 && response?.data?.access_token) {
         message.success("Login successful");
   
-        const {user } = response.data;
-        dispatch(setUser({
-          userID: user.id,
+        const { user } = response.data;
+        
+        // Extract role types from the roles array
+        const userRoleTypes = user.roles.map(role => role.roleType);
+        
+        // Store user data in Redux
+        dispatch(doLoginAction({
+          id: user.id,
           email: user.email,
           name: user.name,
           phoneNumber: user.phoneNumber,
-          roles: user.role,
+          roles: user.roles,
+          role: userRoleTypes[0] // Store primary role for easy access
         }));
-        const redirectTo = location.state?.from || "/";
-        navigate(redirectTo, { replace: true });
+        
+        // Determine redirect path
+        let redirectTo = location.state?.from || "/";
+        
+        if (userRoleTypes.includes("SUPER_ADMIN") || userRoleTypes.includes("ADMIN")) {
+          redirectTo = "/admin/dashboard";
+        }
+        
+        console.log("Redirecting to:", redirectTo);
+        setTimeout(() => {
+          navigate(redirectTo, { replace: true });
+        }, 500);
       } else {
         message.error("Login failed");
       }
     } catch (error) {
-      message.error("Error");
+      console.error("Login error:", error);
+      message.error("Login error");
     } finally {
       setLoading(false);
     }
   };
+  
   return (
     <Row justify="center" align="middle" style={{ height: "80vh" }}>
       <Col xs={24} sm={18} md={12} lg={8}>

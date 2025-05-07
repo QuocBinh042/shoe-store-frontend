@@ -1,10 +1,20 @@
-import React from 'react';
-import { Typography, Timeline, Button } from 'antd';
-import { ClockCircleOutlined } from '@ant-design/icons';
+import React, { useState, useEffect } from 'react';
+import { Typography, Timeline, Button, Tag } from 'antd';
+import { ClockCircleOutlined, IdcardOutlined, UserOutlined } from '@ant-design/icons';
+import { getOrderStatusHistory } from '../../../../services/orderService';
+import CancelOrderModal from './CancelOrderModal';
+import dayjs from 'dayjs';
+import { getStatusColor, ORDER_STATUS_DETAILS } from '../../../../constants/orderConstant';
+import { useSelector } from 'react-redux';
 
 const { Title, Text } = Typography;
 
-const OrderTimeline = ({ items, currentStatus, onAction }) => {
+const OrderTimeline = ({ orderId, currentStatus, onAction }) => {
+  const [statusHistory, setStatusHistory] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const { user } = useSelector((state) => state.account);
+
   const actionButtons = {
     PENDING: { label: 'Confirm Order', next: 'CONFIRMED' },
     CONFIRMED: { label: 'Start Processing', next: 'PROCESSING' },
@@ -13,8 +23,97 @@ const OrderTimeline = ({ items, currentStatus, onAction }) => {
   };
 
   const cancelableStatuses = ['PENDING', 'CONFIRMED'];
-
   const action = actionButtons[currentStatus];
+
+  useEffect(() => {
+    fetchStatusHistory();
+  }, [orderId, currentStatus]);
+
+  const fetchStatusHistory = async () => {
+    try {
+      const response = await getOrderStatusHistory(orderId);
+      setStatusHistory(response.data || []);
+    } catch (error) {
+      console.error('Failed to fetch status history:', error);
+    }
+  };
+
+  const handleAction = (nextStatus) => {
+    if (nextStatus === 'CANCELED') {
+      setShowCancelModal(true);
+    } else {
+      onAction(nextStatus, { userId: user?.id });
+    }
+  };
+
+  const handleCancelConfirm = async (reason) => {
+    setLoading(true);
+    try {
+      await onAction('CANCELED', { 
+        cancelReason: reason,
+        userId: user?.id 
+      });
+      setShowCancelModal(false);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getTimelineItems = () => {
+    return statusHistory.map((item, index) => ({
+      color: getStatusColor(item.status),
+      dot: index === statusHistory.length - 1
+        ? <ClockCircleOutlined style={{ fontSize: 16 }} />
+        : undefined,
+      children: (
+        <div style={{ paddingBottom: 12 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: 4,
+              gap: 8,
+            }}
+          >
+            <div>
+              <div style={{display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div>
+                <Tag color={getStatusColor(item.status)} style={{ marginBottom: 4 }}>
+                  {item.status}
+                </Tag>
+                </div>
+                
+                {typeof ORDER_STATUS_DETAILS[item.status].description === 'function' 
+                  ? ORDER_STATUS_DETAILS[item.status].description(item.changedByName)
+                  : ORDER_STATUS_DETAILS[item.status].description}
+              </div>
+
+            </div>
+            {item.changedAt && (
+              <Text type="secondary" style={{ fontSize: 13, whiteSpace: 'nowrap' }}>
+                {dayjs(item.changedAt).format('YYYY-MM-DD HH:mm:ss')}
+              </Text>
+            )}
+          </div>
+          {item.cancelReason && (
+            <div style={{ marginTop: 8 }}>
+              <Text type="secondary" style={{ fontSize: 14 }}>
+                Reason: {item.cancelReason}
+              </Text>
+            </div>
+          )}
+          {item.trackingNumber && (
+            <div style={{ marginTop: 4 }}>
+              <Text type="secondary" style={{ fontSize: 14 }}>
+                Tracking: {item.trackingNumber}
+              </Text>
+            </div>
+          )}
+        </div>
+      )
+    }));
+  };
 
   return (
     <div
@@ -33,49 +132,30 @@ const OrderTimeline = ({ items, currentStatus, onAction }) => {
 
       <Timeline
         mode="left"
-        items={items.map((item, index) => ({
-          color: index === items.length - 1 ? 'gray' : 'blue',
-          dot: index === items.length - 1
-            ? <ClockCircleOutlined style={{ fontSize: 16 }} />
-            : undefined,
-          children: (
-            <div style={{ paddingBottom: 8 }}>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'baseline',
-                  marginBottom: 4,
-                  gap: 8,
-                }}
-              >
-                <Text strong style={{ fontSize: 15 }}>{item.title}</Text>
-                {item.time && (
-                  <Text type="secondary" style={{ fontSize: 13 }}>
-                    {item.time}
-                  </Text>
-                )}
-              </div>
-              <Text type="secondary" style={{ fontSize: 14 }}>{item.description}</Text>
-            </div>
-          )
-        }))}
+        items={getTimelineItems()}
       />
 
-      {(action || cancelableStatuses.includes(currentStatus)) && (
+      {(action || (cancelableStatuses.includes(currentStatus) && currentStatus !== 'CANCELED')) && (
         <div style={{ textAlign: 'center', marginTop: 32 }}>
           {action && (
-            <Button type="primary" onClick={() => onAction(action.next)}>
+            <Button type="primary" onClick={() => handleAction(action.next)}>
               {action.label}
             </Button>
           )}
-          {cancelableStatuses.includes(currentStatus) && (
-            <Button danger style={{ marginLeft: 16 }} onClick={() => onAction('CANCELLED')}>
+          {cancelableStatuses.includes(currentStatus) && currentStatus !== 'CANCELED' && (
+            <Button danger style={{ marginLeft: 16 }} onClick={() => handleAction('CANCELED')}>
               Cancel Order
             </Button>
           )}
         </div>
       )}
+
+      <CancelOrderModal
+        visible={showCancelModal}
+        onCancel={() => setShowCancelModal(false)}
+        onConfirm={handleCancelConfirm}
+        loading={loading}
+      />
     </div>
   );
 };

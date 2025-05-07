@@ -1,4 +1,4 @@
-import { fetchData, postData } from './apiService';
+import { fetchData, postData, putData } from './apiService';
 
 export const addOrder = async (order) => {
     const data = await postData(`orders`, order);
@@ -180,5 +180,16 @@ export const countOrdersWithPromotions = async () => {
 
 export const getOrderById = async (id) => {
     const data = await fetchData(`orders/${id}`);
+    return data;
+};
+
+export const updateOrderStatus = async (id, body) => {
+    const data = await putData(`orders/${id}/status`, body);
+    return data;
+};
+
+export const getOrderStatusHistory = async (id) => {
+    const data = await fetchData(`orders/${id}/history`);
+    console.log(data);
     return data;
 };

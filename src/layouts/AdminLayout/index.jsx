@@ -1,22 +1,45 @@
 import { Layout, Menu, Dropdown, Avatar } from 'antd';
-import { UserOutlined } from '@ant-design/icons';
-import { Outlet } from 'react-router-dom';
+import { UserOutlined, LogoutOutlined, UserSwitchOutlined } from '@ant-design/icons';
+import { Outlet, useNavigate } from 'react-router-dom';
 import AdminMenu from '../../components/Menu/menuAdmin';
-
+import { useSelector, useDispatch } from 'react-redux';
+import { doLogoutAction } from '../../redux/accountSlice';
+import { authService } from '../../services/authService';
+import { Modal } from 'antd';
+const { confirm } = Modal;
 const { Sider, Content } = Layout;
 
 const AdminLayout = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.account);
+
+  const handleLogout = () => {
+    confirm({
+      title: 'Confirm Logout',
+      content: 'Are you sure you want to log out?',
+      okText: 'Log out',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        await authService.logout();
+        dispatch(doLogoutAction());
+        navigate('/login');
+      },
+    });
+  };
+
   const userDropdownItems = {
     items: [
       {
         key: 'profile',
-        icon: <UserOutlined />,
+        icon: <UserSwitchOutlined />,
         label: 'Update Profile',
       },
       {
         key: 'logout',
-        icon: <UserOutlined />,
+        icon: <LogoutOutlined />,
         label: 'Logout',
+        onClick: handleLogout,
       },
     ],
   };
@@ -78,16 +101,19 @@ const AdminLayout = () => {
               gap: '12px',
             }}
           >
-            <Avatar icon={<UserOutlined />} />
+            <Avatar 
+              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email || 'admin'}`}
+              icon={<UserOutlined />} 
+              style={{ backgroundColor: '#1890ff' }}
+            />
             <div style={{ flex: 1 }}>
-              <div style={{ fontWeight: 'bold' }}>John Doe</div>
-              <div style={{ fontSize: '12px', color: '#666' }}>Admin</div>
+              <div style={{ fontWeight: 'bold' }}>{user?.name || 'Admin'}</div>
+              <div style={{ fontSize: '12px', color: '#666' }}>ID: {user?.id}</div>
             </div>
           </div>
         </Dropdown>
       </Sider>
 
-      {/* Main content; add left margin equal to sider's width */}
       <Layout style={{ marginLeft: 200 }}>
         <Content style={{ margin: 8}}>
           <Outlet />
