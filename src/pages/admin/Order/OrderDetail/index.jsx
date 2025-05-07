@@ -1,4 +1,3 @@
-// OrderDetail.jsx
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -14,6 +13,7 @@ import { getOrderDetailByOrder } from '../../../../services/orderDetailService';
 import EditCustomerModal from '../Modals/EditCustomerModal';
 import EditShippingModal from '../Modals/EditShippingModal';
 import EditOrderItemModal from '../Modals/EditOrderItemModal';
+import { getOrderById } from '../../../../services/orderService';
 
 const OrderDetail = () => {
   const { id: orderID } = useParams();
@@ -23,11 +23,17 @@ const OrderDetail = () => {
   const [editShippingModalOpen, setEditShippingModalOpen] = useState(false);
   const [editItemModalOpen, setEditItemModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
-
+  const [order, setOrder] = useState(null);
+  
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await getOrderDetailByOrder(orderID);
+        const orderData = await getOrderById(orderID);
+        console.log(orderID)
+        setOrder(orderData.data);
+        console.log('Order data:', orderData);
+        console.log('Order details response:', response);
         if (response.statusCode === 200) {
           setOrderDetails(response.data);
         } else {
@@ -42,7 +48,7 @@ const OrderDetail = () => {
 
   if (!orderDetails.length) return null;
 
-  const order = orderDetails[0].order;
+  console.log('Order:', order);
   const user = order?.user;
   const isPending = order.status === 'PENDING';
 
