@@ -5,7 +5,6 @@ function AllRoute() {
   return (
     <>
       {elements}
-
     </>
   )
 }

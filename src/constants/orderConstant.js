@@ -19,27 +19,27 @@ export const ORDER_STATUSES = [
 export const ORDER_STATUS_DETAILS = {
   PENDING: {
     title: 'Order Placed',
-    description: 'Your order has been placed successfully.'
+    description: (changedByName) => changedByName ? `Order has been placed by ${changedByName} and is awaiting confirmation.` : 'Order has been placed and is awaiting confirmation.'
   },
   CONFIRMED: {
     title: 'Order Confirmed',
-    description: 'Order has been confirmed by admin.'
+    description: (changedByName) => changedByName ? `Order confirmed by ${changedByName}` : 'Order has been confirmed by admin.'
   },
   PROCESSING: {
     title: 'Preparing Shipment',
-    description: 'Items are being packed and prepared.'
+    description: (changedByName) => changedByName ? `Order being processed by ${changedByName}` : 'Items are being packed and prepared.'
   },
   SHIPPED: {
     title: 'Out for Delivery',
-    description: 'Order is out for delivery.'
+    description: (changedByName) => changedByName ? `Order shipped by ${changedByName}` : 'Order is out for delivery.'
   },
   DELIVERED: {
     title: 'Delivered',
-    description: 'Order has been delivered to customer.'
+    description: (changedByName) => changedByName ? `Delivery confirmed by ${changedByName}` : 'Order has been delivered to customer.'
   },
   CANCELED: {
     title: 'Canceled',
-    description: 'Order was canceled by user or admin.',
+    description: (changedByName) => changedByName ? `Order canceled by ${changedByName}` : 'Order was canceled by user or admin.',
   },
 };
 

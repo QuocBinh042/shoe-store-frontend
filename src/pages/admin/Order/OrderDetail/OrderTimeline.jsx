@@ -1,28 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, Timeline, Button, Tag } from 'antd';
-import { ClockCircleOutlined, UserOutlined } from '@ant-design/icons';
+import { ClockCircleOutlined, IdcardOutlined, UserOutlined } from '@ant-design/icons';
 import { getOrderStatusHistory } from '../../../../services/orderService';
 import CancelOrderModal from './CancelOrderModal';
 import dayjs from 'dayjs';
+import { getStatusColor, ORDER_STATUS_DETAILS } from '../../../../constants/orderConstant';
+import { useSelector } from 'react-redux';
 
 const { Title, Text } = Typography;
-
-const getStatusColor = (status) => {
-  const colors = {
-    PENDING: 'gold',
-    CONFIRMED: 'blue',
-    PROCESSING: 'cyan',
-    SHIPPED: 'purple',
-    DELIVERED: 'green',
-    CANCELED: 'red',
-  };
-  return colors[status] || 'default';
-};
 
 const OrderTimeline = ({ orderId, currentStatus, onAction }) => {
   const [statusHistory, setStatusHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const { user } = useSelector((state) => state.account);
 
   const actionButtons = {
     PENDING: { label: 'Confirm Order', next: 'CONFIRMED' },
@@ -51,14 +42,17 @@ const OrderTimeline = ({ orderId, currentStatus, onAction }) => {
     if (nextStatus === 'CANCELED') {
       setShowCancelModal(true);
     } else {
-      onAction(nextStatus);
+      onAction(nextStatus, { userId: user?.id });
     }
   };
 
   const handleCancelConfirm = async (reason) => {
     setLoading(true);
     try {
-      await onAction('CANCELED', { cancelReason: reason });
+      await onAction('CANCELED', { 
+        cancelReason: reason,
+        userId: user?.id 
+      });
       setShowCancelModal(false);
     } finally {
       setLoading(false);
@@ -83,17 +77,18 @@ const OrderTimeline = ({ orderId, currentStatus, onAction }) => {
             }}
           >
             <div>
-              <Tag color={getStatusColor(item.status)} style={{ marginBottom: 4 }}>
-                {item.status}
-              </Tag>
-              {item.changedBy && (
-                <div style={{ marginTop: 4 }}>
-                  <Text type="secondary" style={{ fontSize: 13 }}>
-                    <UserOutlined style={{ marginRight: 4 }} />
-                    Changed by: {item.changedBy}
-                  </Text>
+              <div style={{display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div>
+                <Tag color={getStatusColor(item.status)} style={{ marginBottom: 4 }}>
+                  {item.status}
+                </Tag>
                 </div>
-              )}
+                
+                {typeof ORDER_STATUS_DETAILS[item.status].description === 'function' 
+                  ? ORDER_STATUS_DETAILS[item.status].description(item.changedByName)
+                  : ORDER_STATUS_DETAILS[item.status].description}
+              </div>
+
             </div>
             {item.changedAt && (
               <Text type="secondary" style={{ fontSize: 13, whiteSpace: 'nowrap' }}>

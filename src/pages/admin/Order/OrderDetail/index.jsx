@@ -111,11 +111,23 @@ const OrderDetail = () => {
     navigate('/admin/orders');
   };
 
-  const handleOrderAction = async (nextStatus) => {
+  const handleOrderAction = async (nextStatus, additionalData = {}) => {
     try {
-      const updatedOrder = await updateOrderStatus(orderID, nextStatus);
-      setOrder(prev => ({ ...prev, status: updatedOrder.status }));
-      message.success('Order status updated successfully');
+      const statusUpdateData = {
+        status: nextStatus,
+        trackingNumber: additionalData.trackingNumber || null,
+        cancelReason: additionalData.cancelReason || null,
+        userId: additionalData.userId || null
+      };
+      
+      const updatedOrder = await updateOrderStatus(orderID, statusUpdateData);
+      
+      if (updatedOrder) {
+        // Refresh the order data to show the updated status and timeline
+        const orderData = await getOrderById(orderID);
+        setOrder(orderData.data);
+        message.success('Order status updated successfully');
+      }
     } catch (err) {
       message.error(err.message || 'Failed to update order status');
     }
@@ -171,7 +183,7 @@ const OrderDetail = () => {
         <Row style={{ marginTop: 24 }}>
           <Col span={24}>
             <OrderTimeline
-              orderId={order.orderID}            // ← đây
+              orderId={order.orderID}   
               currentStatus={order.status}
               onAction={handleOrderAction}
               loading={loading}

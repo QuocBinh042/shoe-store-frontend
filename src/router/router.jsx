@@ -26,10 +26,49 @@ import MarketingIntegration from "../pages/admin/Promotion/MarketingIntegration"
 import CustomerManager from "../pages/admin/Customer";
 import CustomerDetail from "../pages/admin/Customer/CustomerDetails";
 import ProductForm from "../pages/admin/Product/Form/ProductForm";
+import { Navigate, useLocation } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { isAdmin } from "../utils/auth";
+import LoadingSpinner from "../components/LoadingSpinner/LoadingSpinner";
+
+export const AdminRoute = ({ children }) => {
+  const { isAuthenticated, isAppLoading, user } = useSelector(s => s.account);
+
+  if (isAppLoading) return <LoadingSpinner />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAdmin(user)) return <Navigate to="/" replace />;
+
+  return children;
+};
+
+const RoleBasedRedirect = () => {
+  const { isAuthenticated, isAppLoading, user } = useSelector(s => s.account);
+  const location = useLocation();
+
+  if (location.pathname !== "/") return null;
+  if (isAppLoading) return <LoadingSpinner />;
+  if (isAuthenticated && isAdmin(user)) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+  return null;
+};
+
+const RootLayout = ({ children }) => (
+  <>
+    <RoleBasedRedirect />
+    {children}
+  </>
+);
+
+
 export const routes = [
   {
     path: "/",
-    element: <CustomerLayout />,
+    element: (
+      <RootLayout>
+        <CustomerLayout />
+      </RootLayout>
+    ),
     breadcrumb: "Home",
     children: [
       { path: "/", element: <Home />, breadcrumb: "Home" },
@@ -41,18 +80,18 @@ export const routes = [
       {
         path: "checkout",
         element: (
-            <PrivateRoute>
-              <Checkout />
-            </PrivateRoute>
+          <PrivateRoute>
+            <Checkout />
+          </PrivateRoute>
         ),
         breadcrumb: "Checkout",
       },
       {
         path: "account",
         element: (
-            <PrivateRoute>
-              <Account />
-            </PrivateRoute>
+          <PrivateRoute>
+            <Account />
+          </PrivateRoute>
         ),
         breadcrumb: "Account",
       },
@@ -63,7 +102,11 @@ export const routes = [
   { path: "/sign-up", element: <SignUp /> },
   {
     path: "/admin",
-    element: <AdminLayout />,
+    element: (
+      <AdminRoute>
+        <AdminLayout />
+      </AdminRoute>
+    ),
     children: [
       {
         path: "dashboard",
@@ -137,10 +180,4 @@ export const routes = [
       },
     ],
   }
-]
-  
-
-
-
-
-
+];

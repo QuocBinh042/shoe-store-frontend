@@ -5,12 +5,17 @@ const useOrderStatus = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const handleUpdateOrderStatus = async (orderId, status) => {
+  const handleUpdateOrderStatus = async (orderId, statusData) => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await updateOrderStatus(orderId, { status });
+      // If statusData is just a string, convert it to an object
+      const data = typeof statusData === 'string' 
+        ? { status: statusData } 
+        : statusData;
+
+      const response = await updateOrderStatus(orderId, data);
 
       if (response.statusCode === 200) {
         return response.data;  
