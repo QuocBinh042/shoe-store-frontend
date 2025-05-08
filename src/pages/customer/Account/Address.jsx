@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Card, Button, Modal, List, Tag, Typography, message } from "antd";
-import AddressAddForm from "./AddressAddForm ";
+import AddressAddForm from "./AddressAddForm";
 import AddressEditForm from "./AddressEditForm";
 import { fetchAddressByUser, deleteAddress } from "../../../services/addressService";
 import { useSelector } from "react-redux";

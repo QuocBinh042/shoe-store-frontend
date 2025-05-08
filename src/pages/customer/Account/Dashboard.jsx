@@ -65,9 +65,9 @@ const UserDashboard = () => {
         }));
 
         orders.forEach(order => {
-            const orderDate = new Date(order.orderDate);
+            const orderDate = new Date(order.orderResponse.orderDate);
             if (!isNaN(orderDate) && orderDate.getFullYear() === new Date().getFullYear()) {
-                monthlyData[orderDate.getMonth()].amount += order.total;
+                monthlyData[orderDate.getMonth()].amount += order.orderResponse.total;
             }
         });
 
@@ -114,8 +114,6 @@ const UserDashboard = () => {
                 <Title level={3}>{userInfo.name}</Title>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", padding: "10px" }}>
                     <Text><b>Email: </b> {userInfo.email}</Text>
-                    <Text><b>User name: </b> {userInfo.userName}</Text>
-                    <Text><b>CI: </b> {userInfo.ci}</Text>
                     <Text><b>Phone: </b> {userInfo.phoneNumber}</Text>
                 </div>
                 <Button type="primary" icon={<EditOutlined />} onClick={showModal} style={{ marginTop: 10 }}>Edit</Button>
@@ -180,17 +178,6 @@ const UserDashboard = () => {
                     >
                         <Input />
                     </Form.Item>
-
-                    <Form.Item
-                        name="userName"
-                        label="User name"
-                        rules={[
-                            { required: true, message: "Please enter your user name!" },
-                            { pattern: /^[A-Za-z][A-Za-z0-9]*$/, message: "User name must start with a letter and can contain numbers!" }
-                        ]}
-                    >
-                        <Input />
-                    </Form.Item>
                     <Form.Item
                         name="phoneNumber"
                         label="Phone"
@@ -202,16 +189,6 @@ const UserDashboard = () => {
                         <Input />
                     </Form.Item>
 
-                    <Form.Item
-                        name="ci"
-                        label="CI"
-                        rules={[
-                            { required: true, message: "Please enter your CI!" },
-                            { pattern: /^[0-9]{12}$/, message: "CI must contain exactly 12 digits!" }
-                        ]}
-                    >
-                        <Input />
-                    </Form.Item>
                 </Form>
 
             </Modal>

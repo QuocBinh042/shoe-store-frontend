@@ -9,39 +9,40 @@ const ProductGrid = ({ products, totalProducts, currentPage, onPageChange }) => 
   const handleDetails = (productID) => {
     navigate(`/product-detail/${productID}`);
   };
-  const getPromotionLabel = (promotionValue) => {
-    if (!promotionValue) return "";
+  const getPromotionLabel = (promotion) => {
+    if (!promotion || !promotion.type) return "";
 
-    if (promotionValue.startsWith("Discount")) {
-      const match = promotionValue.match(/\d+/);
-      return match ? `Sale ${match[0]}%` : "Sale";
-    }
-
-    if (promotionValue.startsWith("Buy")) {
-      const match = promotionValue.match(/Buy (\d+) gift (\d+)/i);
-      if (match) {
-        const buy = match[1];
-        const gift = match[2];
-        return `🎁 Buy ${buy} Get ${gift} Free`;
+    switch (promotion.type) {
+      case "PERCENTAGE": {
+        const value = promotion.discountValue;
+        return value ? `Sale ${value}%` : "Sale";
       }
-      return "🎁 Buy More Get Free";
-    }
 
-    if (promotionValue.startsWith("Gift")) {
-      return "🎁 Free Gift";
-    }
-
-    if (promotionValue.startsWith("Fix:")) {
-      const match = promotionValue.match(/\d+/);
-      if (match) {
-        const fixedAmount = Number(match[0]).toLocaleString("vi-VN") + "₫";
-        return `-${fixedAmount}`;
+      case "FIXED": {
+        const value = promotion.discountValue;
+        return value
+          ? `- ${Number(value).toLocaleString("vi-VN")}₫`
+          : "Fixed Discount";
       }
-      return "Fixed Discount";
-    }
 
-    return "";
+      case "BUYX": {
+        const buy = promotion.buyQuantity;
+        if (buy) {
+          return `🎁 Free 1 when buying ${buy}+ items`;
+        }
+        return "🎁";
+      }
+
+
+      case "GIFT": {
+        return "🎁 Free gift";
+      }
+
+      default:
+        return "";
+    }
   };
+
 
 
   return (
@@ -58,7 +59,7 @@ const ProductGrid = ({ products, totalProducts, currentPage, onPageChange }) => 
             return (
               <Col key={product.productID} xs={24} sm={12} md={8} lg={6}>
                 <Badge.Ribbon
-                  text={<span style={{ fontSize: "13px", fontWeight: 500 }}>{getPromotionLabel(product.promotionValue)}</span>}
+                  text={<span style={{ fontSize: "13px", fontWeight: 500 }}>{getPromotionLabel(product.promotion)}</span>}
                   color="volcano"
                   placement="start"
                 >
@@ -66,7 +67,7 @@ const ProductGrid = ({ products, totalProducts, currentPage, onPageChange }) => 
                     cover={
                       product.imageURL?.length > 0 ? (
                         (() => {
-                          const imageUrl = `${CLOUDINARY_BASE_URL}${product.productID}/${product.imageURL[0]}`;
+                          const imageUrl = `${CLOUDINARY_BASE_URL}${product.imageURL[0]}`;
                           return (
                             <img
                               alt={product.productName}

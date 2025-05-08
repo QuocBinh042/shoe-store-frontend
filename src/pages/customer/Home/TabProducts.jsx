@@ -27,7 +27,7 @@ const mapProductData = (product) => {
 
 const ProductCard = React.memo(({ product }) => {
   const navigate = useNavigate();
-  const imageUrl = `${CLOUDINARY_BASE_URL}${product.id}/${product.image}`;
+  const imageUrl = `${CLOUDINARY_BASE_URL}${product.image}`;
 
   const goToDetail = () => {
     navigate(`/product-detail/${product.id}`);

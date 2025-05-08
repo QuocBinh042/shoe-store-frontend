@@ -47,7 +47,7 @@ const RelatedProducts = ({ productId }) => {
                     <Image
                       preview={false}
                       alt={product.productName}
-                      src={product.imageURL?.length > 0 ? `${CLOUDINARY_BASE_URL}${product.productID}/${product.imageURL[0]}` : ""}
+                      src={product.imageURL?.length > 0 ? `${CLOUDINARY_BASE_URL}${product.imageURL[0]}` : ""}
                       style={{ width: "200px", height: "250px", objectFit: "contain" }}
                     />
 

@@ -1,24 +1,35 @@
 import React, { useState, useEffect, useMemo } from "react";
-import { Radio, Button, Image, Table, Steps, Divider, Modal, Card, Tag ,Drawer } from "antd";
-import { CarOutlined, TagOutlined } from "@ant-design/icons";
+import { Radio, Button, Image, Steps, Divider, Modal, Card, Tag, Drawer, Space } from "antd";
+import { CarOutlined, TagOutlined, GiftOutlined } from "@ant-design/icons";
 import "./Checkout.scss";
 import OrderSuccess from "../Order";
-import { useLocation,useNavigate  } from "react-router-dom";
-import { fetchProductDetailById } from "../../../services/productDetailService";
+import AddressAddForm from "../Account/AddressAddForm";
+import GiftSelectionForm from "./GiftSelectionForm";
+import { useLocation, useNavigate } from "react-router-dom";
+import { fetchProductDetailById, fetchProductDetailByProductId } from "../../../services/productDetailService";
 import { addOrder } from "../../../services/orderService";
 import { addOrderDetails } from "../../../services/orderDetailService";
-import logoVNPAY from '../../../assets/images/logos/vnpay_logo.png'
+import logoVNPAY from '../../../assets/images/logos/vnpay_logo.png';
 import { addPayment, getVnPayUrl } from "../../../services/paymentService";
 import { fetchVoucherWithPrice } from "../../../services/voucherService";
 import { fetchAddressByUser } from "../../../services/addressService";
 import { useSelector } from "react-redux";
+
 const Checkout = () => {
+  const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_PRODUCT_IMAGE_BASE_URL;
   const location = useLocation();
   const selectedItems = location.state?.selectedItems || [];
   const navigate = useNavigate();
-  const [current, setCurrent] = useState(0);
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [isModalVoucherVisible, setisModalVoucherVisible] = useState(false);
+  const user = useSelector((state) => state.account.user);
+
+  const [modals, setModals] = useState({
+    orderSuccess: false,
+    voucher: false,
+    addAddress: false,
+    giftSelection: false,
+    addressSelection: false,
+  });
+  const [currentStep, setCurrentStep] = useState(0);
   const [productDetails, setProductDetails] = useState([]);
   const [shippingMethod, setShippingMethod] = useState("Normal");
   const [paymentMethod, setPaymentMethod] = useState(null);
@@ -27,37 +38,41 @@ const Checkout = () => {
   const [selectedVoucher, setSelectedVoucher] = useState(null);
   const [addresses, setAddresses] = useState([]);
   const [selectedAddress, setSelectedAddress] = useState(null);
-  const [isModalAddressVisible, setIsModalAddressVisible] = useState(false);
-  const user = useSelector((state) => state.account.user);
-  console.log(selectedItems)
+  const [giftSelections, setGiftSelections] = useState({});
+  const [giftProductVariants, setGiftProductVariants] = useState([]);
+  const [currentGiftItem, setCurrentGiftItem] = useState(null);
+  const [imageGiftProduct, setImageGiftProduct] = useState(null);
+
+  const formatCurrency = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+
+  const { totalCost, discount, shippingCost, subtotal } = useMemo(() => {
+    const subtotal = productDetails.reduce((total, product) => total + product.quantity * product.price, 0);
+    const shippingCost = shippingMethod === "Express" ? 30000 : 0;
+    let discount = 0;
+
+    if (selectedVoucher) {
+      if (selectedVoucher.freeShipping) {
+        discount = shippingCost;
+      } else if (selectedVoucher.discountType === "PERCENT") {
+        discount = (selectedVoucher.discountValue / 100) * subtotal;
+      } else if (selectedVoucher.discountType === "FIXED") {
+        discount = selectedVoucher.discountValue;
+      }
+    }
+
+    return {
+      totalCost: subtotal + shippingCost - discount,
+      discount,
+      shippingCost,
+      subtotal,
+    };
+  }, [productDetails, selectedVoucher, shippingMethod]);
+
   useEffect(() => {
     if (user?.userID) {
       fetchAddresses(user.userID);
     }
   }, [user?.userID]);
-  const fetchAddresses = async (userId) => {
-    try {
-      const response = await fetchAddressByUser(userId);
-      setAddresses(response || []);
-
-      if (response.length === 0) {
-        Modal.info({
-          title: "No Address Found",
-          content: "You don't have any saved addresses. Please add a new address.",
-          onOk: () => {
-            window.location.href = '/account';
-          }
-        });
-      } else {
-        const defaultAddress = response.find(addr => addr.default === true || addr.default === "true") || response[0];
-        setSelectedAddress(defaultAddress);
-      }
-    } catch (error) {
-      console.error("Error fetching addresses:", error);
-    }
-  };
-
-
 
   useEffect(() => {
     if (productDetails.length === 0 && selectedItems.length > 0) {
@@ -71,35 +86,10 @@ const Checkout = () => {
         );
         setProductDetails(details);
       };
-
       fetchProductDetails();
     }
   }, [selectedItems]);
 
-
-  const { totalCost, discount } = useMemo(() => {
-    let subtotal = productDetails.reduce(
-      (total, product) => total + product.quantity * product.price,
-      0
-    );
-
-    let shippingCost = shippingMethod === "Express" ? 30000 : 0;
-    let discount = 0;
-
-    if (selectedVoucher) {
-      if (selectedVoucher.freeShipping) {
-        discount = shippingCost;
-      } else if (selectedVoucher.discountType === "PERCENT") {
-        discount = (selectedVoucher.discountValue / 100) * subtotal;
-      } else if (selectedVoucher.discountType === "FIXED") {
-        discount = selectedVoucher.discountValue;
-      }
-    }
-
-    return { totalCost: subtotal + shippingCost - discount, discount };
-  }, [productDetails, selectedVoucher, shippingMethod]);
-
-  const shippingCost = shippingMethod === "Express" ? 30000 : 0
   useEffect(() => {
     const fetchVouchers = async () => {
       try {
@@ -109,16 +99,94 @@ const Checkout = () => {
         console.error("Error fetching vouchers:", error);
       }
     };
-
     if (totalCost > 0) fetchVouchers();
   }, [totalCost]);
+
+  const fetchAddresses = async (userId) => {
+    try {
+      const response = await fetchAddressByUser(userId);
+      setAddresses(response || []);
+      if (response.length === 0) {
+        setModals(prev => ({ ...prev, addAddress: true }));
+      } else {
+        const defaultAddress = response.find(addr => addr.default === true || addr.default === "true") || response[0];
+        setSelectedAddress(defaultAddress);
+      }
+    } catch (error) {
+      console.error("Error fetching addresses:", error);
+    }
+  };
+
+  const openGiftSelectionModal = (item) => {
+    setCurrentGiftItem(item);
+    const giftProductId = item.promotion.type === "BUYX" ? item.productID : item.promotion.giftProductID;
+    if (giftProductId) {
+      fetchProductDetailByProductId(giftProductId)
+        .then(result => {
+          setImageGiftProduct(`${CLOUDINARY_BASE_URL}${result.imageURL?.[0]}`);
+          setGiftProductVariants(result);
+          setModals(prev => ({ ...prev, giftSelection: true }));
+        })
+        .catch(error => {
+          console.error("Error fetching gift product details:", error);
+          Modal.error({ content: "Failed to load gift product variants. Please try again." });
+          setGiftProductVariants([]);
+        });
+    }
+  };
+
+  const handleGiftSelection = (giftProductId, color, size) => {
+    const giftVariant = giftProductVariants.productDetails?.find(v => v.color === color && v.size === size);
+    setGiftSelections(prev => ({
+      ...prev,
+      [currentGiftItem.key]: {
+        giftProductId,
+        color,
+        size,
+        name: giftProductVariants?.productName || "Gift Item",
+        image: imageGiftProduct,
+        giftProductDetailID: giftVariant?.productDetailID,
+      },
+    }));
+    setModals(prev => ({ ...prev, giftSelection: false }));
+  };
+
+  const meetsPromotionCriteria = (item) => {
+    const promotion = item.promotion;
+    if (promotion?.type === "BUYX" && promotion.buyQuantity && item.quantity >= promotion.buyQuantity) {
+      return {
+        type: "BUYX",
+        message: "Free 1 item",
+      };
+    } else if (promotion?.type === "GIFT" ) {
+      return {
+        type: "GIFT",
+        message: `Free gift item`,
+      };
+    }
+    return false;
+  };
+
   const createOrder = async () => {
     if (!paymentMethod) {
+      Modal.error({ content: "Please select a payment method!" });
+      return;
+    }
+    if (!selectedAddress) {
+      Modal.error({ content: "Please add or select a shipping address!" });
+      setModals(prev => ({ ...prev, addAddress: true }));
+      return;
+    }
+
+    const unfulfilledGifts = productDetails.filter(product => meetsPromotionCriteria(product) && !giftSelections[product.key]);
+    if (unfulfilledGifts.length > 0) {
       Modal.error({
-        content: "Please select a payment method!",
+        content: `Please select size and color for the gift of "${unfulfilledGifts[0].name}".`,
+        onOk: () => openGiftSelectionModal(unfulfilledGifts[0]),
       });
       return;
     }
+
     const date = new Date();
     const orderCode = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}${String(date.getHours()).padStart(2, "0")}${String(date.getMinutes()).padStart(2, "0")}${String(date.getSeconds()).padStart(2, "0")}`;
 
@@ -132,7 +200,7 @@ const Checkout = () => {
       code: orderCode,
       paymentMethod: paymentMethod === "VNPay" ? "VNPAY" : "CASH",
       ...(selectedVoucher && { voucher: { voucherID: selectedVoucher.voucherID } }),
-      discount: discount
+      voucherDiscount: discount,
     };
 
     try {
@@ -140,307 +208,291 @@ const Checkout = () => {
       if (response && response.data.orderID) {
         const orderID = response.data.orderID;
 
-        // Add order details
         await Promise.all(
           productDetails.map(async (product) => {
-            const productDetail = await fetchProductDetailById(product.detail.productDetailID)
+            const giftSelection = giftSelections[product.key];
             const orderDetail = {
               quantity: product.quantity,
               price: product.price,
-              productDetail: productDetail,
+              productDetail: { productDetailID: product.key },
               order: { orderID },
+              ...(giftSelection && {
+                giftProductDetail: { productDetailID: giftSelection.giftProductDetailID },
+                giftedQuantity: 1,
+              }),
+              ...(product.promotion && {
+                promotion: { promotionID: product.promotion.promotionID },
+              }),
             };
             await addOrderDetails(orderDetail);
           })
         );
 
-        // Add payment
-        const payment = {
-          paymentDate: new Date().toISOString(),
-          status: "PENDING",
-          order: { orderID },
-        };
+        const payment = { paymentDate: new Date().toISOString(), status: "PENDING", order: { orderID } };
         await addPayment(payment);
-      let vnPayUrl = null;
-      if (paymentMethod === "VNPay") {
-        const vnPayResponse = await getVnPayUrl(totalCost, orderCode);
-        vnPayUrl = vnPayResponse.paymentUrl;
-      }
-      // Set modal data
-      setModalData({
-        transactionDate: new Date().toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" }),
-        paymentMethod: paymentMethod === "VNPay" ? "PENDING" : "CASH",
-        shippingMethod: shippingMethod === "Express" ? "Express delivery (1-3 business days)" : "Normal delivery (3-5 business days)",
-        products: productDetails,
-        subtotal: productDetails.reduce((total, product) => total + product.quantity * product.price, 0),
-        shippingCost: shippingCost,
-        total: totalCost,
-        vnPayUrl,
-      });
-      setIsModalVisible(true)
+
+        let vnPayUrl = null;
+        if (paymentMethod === "VNPay") {
+          const vnPayResponse = await getVnPayUrl(totalCost, orderCode);
+          vnPayUrl = vnPayResponse.paymentUrl;
+        }
+
+        setModalData({
+          transactionDate: new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }),
+          paymentMethod: paymentMethod === "VNPay" ? "PENDING" : "CASH",
+          shippingMethod: shippingMethod === "Express" ? "Express delivery (1-3 days)" : "Normal delivery (3-5 days)",
+          products: productDetails,
+          ...(Object.keys(giftSelections).length > 0 && {
+            gifts: Object.values(giftSelections).map(gift => ({
+              productKey: Object.keys(giftSelections).find(key => giftSelections[key] === gift),
+              name: gift.name,
+              color: gift.color,
+              size: gift.size,
+              quantity: 1,
+              image: gift.image,
+            }))
+          }),
+          subtotal,
+          shippingCost,
+          total: totalCost,
+          vnPayUrl,
+        });
+
+        setModals(prev => ({ ...prev, orderSuccess: true }));
       }
     } catch (error) {
-      console.error("Error creating order, order details, or payment:", error);
-      Modal.error({
-        content: "Failed to place the order. Please try again.",
-      });
+      console.error("Error creating order:", error);
+      Modal.error({ content: "Failed to place the order. Please try again." });
     }
   };
-  const handleCloseSuccesDrawe = () => {
-    setIsModalVisible(false);
-    navigate("/"); 
+
+  const handleCloseSuccessDrawer = () => {
+    setModals(prev => ({ ...prev, orderSuccess: false }));
+    navigate("/");
   };
+
   const handleSelectAddress = (address) => {
     setSelectedAddress(address);
-    setIsModalAddressVisible(false);
+    setModals(prev => ({ ...prev, addressSelection: false }));
   };
-  const dataSource = [
-    {
-      key: '1',
-      title: 'Contact',
-      content: selectedAddress
-        ? `${selectedAddress.fullName} - ${selectedAddress.phone}`
-        : "No address selected",
 
-    },
+  const handleAddAddressSubmit = async (newAddress) => {
+    try {
+      const updatedAddresses = await fetchAddressByUser(user.userID);
+      setAddresses(updatedAddresses || []);
+      setSelectedAddress(newAddress);
+      setModals(prev => ({ ...prev, addAddress: false }));
+    } catch (error) {
+      console.error("Error refreshing addresses:", error);
+    }
+  };
 
-    {
-      key: '2',
-      title: 'Shipping address',
-      content: selectedAddress
-        ? `${selectedAddress.street}, ${selectedAddress.ward}, ${selectedAddress.district}, ${selectedAddress.city}`
-        : "No address selected",
-      action: <Button type="link" onClick={() => setIsModalAddressVisible(true)}>Change</Button>,
-    },
-    {
-      key: '3',
-      title: 'Shipping Method',
-      content: (
-        <Radio.Group
-          value={shippingMethod}
-          onChange={(e) => setShippingMethod(e.target.value)}
-        >
-          <Radio value="Normal">Normal</Radio>
-          <Radio value="Express">Express</Radio>
-        </Radio.Group>
-      ),
-      action: null,
-    },
-    {
-      key: '4',
-      title: 'Select a Voucher',
-      content: (
-        <>
-          {selectedVoucher ? (
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              {selectedVoucher.freeShipping ? (
-                <>
-                  <CarOutlined style={{ color: "green" }} />
-                  <span>{selectedVoucher.code} - Freeship</span>
-                </>
-              ) : selectedVoucher.discountType === "PERCENT" ? (
-                <>
-                  <TagOutlined style={{ color: "red" }} />
-                  <span>{selectedVoucher.code} - {selectedVoucher.discountValue}% off coupon</span>
-                </>
-              ) : (
-                <>
-                  <TagOutlined style={{ color: "red" }} />
-                  <span>{selectedVoucher.code} - {selectedVoucher.discountValue?.toLocaleString() || "0"}₫ off coupon</span>
-                </>
+  const ProductItem = ({ product, index }) => {
+    const selectedGift = giftSelections[product.key];
+    const promotionInfo = meetsPromotionCriteria(product);
+
+    return (
+      <div key={product.detail?.productDetailID || `product-${index}`} className="product-item-container">
+        <div className="product-item">
+          <Image src={product.image} className="product-image" width={150} preview={false} />
+          <div className="product-details">
+            <p className="product-name">{product.name}</p>
+            <p className="product-variant">{`${product.detail.color} / ${product.detail.size.replace("SIZE_", "")}`}</p>
+            <p className="product-quantity">x {product.quantity}</p>
+          </div>
+          <p className="product-price">{formatCurrency(product.price * product.quantity)}</p>
+        </div>
+        {promotionInfo && (
+          <div className="promotion-section">
+            <Space>
+              <Tag icon={<GiftOutlined />} color="green" className="promotion-tag">
+                {promotionInfo.message}
+              </Tag>
+              {!selectedGift && (
+                <Button
+                  className="select-gift-button"
+                  onClick={() => openGiftSelectionModal(product)}
+                >
+                  Select Gift
+                </Button>
               )}
-            </div>
-          ) : (
-            <p>No voucher selected</p>
-          )}
+            </Space>
+            {selectedGift && (
+              <div className="gift-item">
+                <Image src={selectedGift.image || ''} className="gift-image" width={80} preview={false} />
+                <div className="gift-details">
+                  <p className="gift-name">
+                    <Tag color="green" className="gift-tag">Gift</Tag>
+                    {selectedGift.name}
+                  </p>
+                  <p className="gift-variant">{`${selectedGift.color} / ${selectedGift.size.replace("SIZE_", "")}`}</p>
+                  <p className="gift-quantity">x 1</p>
+                </div>
+                <p className="gift-price">Free</p>
+              </div>
+            )}
+          </div>
+        )}
+        <Divider className="product-divider" />
+      </div>
+    );
+  };
 
-        </>
-      ),
-      action: <Button type="link" onClick={() => setisModalVoucherVisible(true)}>Change</Button>
-    },
-  ];
-
-  const columns = [
-    {
-      title: '',
-      dataIndex: 'title',
-      key: 'title',
-      width: '20%',
-    },
-    {
-      title: '',
-      dataIndex: 'content',
-      key: 'content',
-      width: '60%',
-    },
-    {
-      title: '',
-      dataIndex: 'action',
-      key: 'action',
-      width: '20%',
-      align: 'right',
-    },
-  ];
   const steps = [
     {
-      title: "Shipping address",
+      title: "Shipping Address",
       content: (
-        <>
-          <Table
-            style={{ padding: '20px 0' }}
-            dataSource={dataSource}
-            columns={columns}
-            pagination={false}
-            showHeader={false}
-          />
-        </>
+        <div className="step-content">
+          <div className="info-row">
+            <span className="info-label">Contact</span>
+            <span className="info-value">{selectedAddress ? `${selectedAddress.fullName} - ${selectedAddress.phone}` : "No address selected"}</span>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Address</span>
+            <span className="info-value">{selectedAddress ? `${selectedAddress.street}, ${selectedAddress.ward}, ${selectedAddress.district}, ${selectedAddress.city}` : "No address selected"}</span>
+            <Button
+              className="change-button"
+              onClick={() => setModals(prev => ({ ...prev, [addresses.length === 0 ? "addAddress" : "addressSelection"]: true }))}
+            >
+              {addresses.length === 0 ? "Add" : "Change"}
+            </Button>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Shipping Method</span>
+            <Radio.Group value={shippingMethod} onChange={(e) => setShippingMethod(e.target.value)} className="shipping-options">
+              <Radio value="Normal">Normal</Radio>
+              <Radio value="Express">Express</Radio>
+            </Radio.Group>
+          </div>
+          <div className="info-row">
+            <span className="info-label">Voucher</span>
+            <span className="info-value">
+              {selectedVoucher ? (
+                <div className="voucher-info">
+                  {selectedVoucher.freeShipping ? (
+                    <>
+                      <CarOutlined className="voucher-icon free-shipping" />
+                      <span>{selectedVoucher.code} - Free shipping</span>
+                    </>
+                  ) : selectedVoucher.discountType === "PERCENT" ? (
+                    <>
+                      <TagOutlined className="voucher-icon discount" />
+                      <span>{selectedVoucher.code} - {selectedVoucher.discountValue}% off</span>
+                    </>
+                  ) : (
+                    <>
+                      <TagOutlined className="voucher-icon discount" />
+                      <span>{selectedVoucher.code} - {formatCurrency(selectedVoucher.discountValue)} off</span>
+                    </>
+                  )}
+                </div>
+              ) : (
+                "No voucher selected"
+              )}
+            </span>
+            <Button className="change-button" onClick={() => setModals(prev => ({ ...prev, voucher: true }))}>Change</Button>
+          </div>
+        </div>
       ),
     },
     {
-      title: "Payment method",
+      title: "Payment Method",
       content: (
-        <Radio.Group
-          value={paymentMethod}
-          onChange={(e) => setPaymentMethod(e.target.value)}
-        >
-          <Radio value="VNPay">
-            <img src={logoVNPAY} className="payment-logo" /> VNPay
-          </Radio>
-          <Radio value="Cod">Cash on Delivery</Radio>
-        </Radio.Group>
+        <div className="step-content">
+          <Radio.Group value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="payment-options">
+            <Radio value="VNPay" className="payment-option">
+              <img src={logoVNPAY} className="payment-logo" alt="VNPay" /> VNPay
+            </Radio>
+            <Radio value="Cod" className="payment-option">Cash on Delivery</Radio>
+          </Radio.Group>
+        </div>
       ),
     },
     {
-      title: "Order confirm",
-      content: <Button className="checkout-form__payment-pay-now" onClick={createOrder}>Pay now</Button>,
+      title: "Confirm Order",
+      content: (
+        <Button className="pay-now-button" onClick={createOrder}>
+          Pay Now
+        </Button>
+      ),
     },
   ];
+
   return (
-    <>
-      <div className="checkout-container">
-        <div className="checkout-form">
-          <Steps size="small" current={current} direction="vertical" onChange={setCurrent}>
-            {steps.map((step, index) => (
-              <Steps.Step
-                key={`step-${index}`}
-                title={<span className="custom-step-title">{step.title}</span>}
-                description={step.content}
-                onClick={() => setCurrent(index)}
-              />
-            ))}
+    <div className="modern-checkout-container">
+      <div className="checkout-steps">
+        <Steps current={currentStep} direction="vertical" onChange={setCurrentStep}>
+          {steps.map((step, index) => (
+            <Steps.Step
+              key={`step-${index}`}
+              title={step.title}
+              description={step.content}
+            />
+          ))}
+        </Steps>
+      </div>
 
-          </Steps>
+      <div className="order-summary">
+        <h2 className="summary-title">Order Summary</h2>
+        <div className="products-list">
+          {productDetails.map((product, index) => (
+            <ProductItem key={product.key} product={product} index={index} />
+          ))}
         </div>
-
-        <div className="checkout-summary">
-          <div className="checkout-summary__title">
-            <span >Order Summary</span>
+        <div className="summary-totals">
+          <div className="total-row">
+            <span>Subtotal</span>
+            <span>{formatCurrency(subtotal)}</span>
           </div>
-          <div className="scrollable">
-            {productDetails.map((product, index) => (
-              <div key={product.detail?.productDetailID || `product-${index}`}>
-                <div className="checkout-summary__item">
-                  <Image src={product.image} className="checkout-summary__image" width={120} 
-                  />
-                  <div className="checkout-summary__details">
-                    <p className="checkout-summary__product-name">{product.name}</p>
-                    <p>{`${product.detail.color} / ${product.detail.size.replace("SIZE_", "")}`}</p>
-                    <p>Quantity: {product.quantity}</p>
-                  </div>
-                  <p className="checkout-summary__product-price">{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.quantity * product.price)}</p>
-                </div>
-                <Divider style={{ marginTop: 1, marginBottom: 1 }} ></Divider>
-              </div>
-
-            ))}
+          <div className="total-row">
+            <span>Shipping</span>
+            <span>{shippingCost === 0 ? "Free" : formatCurrency(shippingCost)}</span>
           </div>
-          <div className="checkout-summary__totals">
-            <p className="checkout-summary__subtotal">Subtotal
-              <span>
-                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                  productDetails.reduce((total, product) => total + product.quantity * product.price, 0)
-                )}
-              </span>
-            </p>
-            <p className="checkout-summary__shipping">Shipping
-              <span>{shippingMethod === "Express" ? "30.000 ₫" : "FREE"}</span>
-            </p>
-            <p className="checkout-summary__discount">
-              Discount
-              <span>
-                {selectedVoucher ? (
-                  selectedVoucher.freeShipping ? (
-                    `- ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(shippingCost)} `
-                  ) : selectedVoucher.discountType === "PERCENT" ? (
-                    ` - ${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(
-                      (selectedVoucher.discountValue / 100) * productDetails.reduce((total, product) => total + product.quantity * product.price, 0)
-                    )} `
-                  ) : (
-                    ` (-${new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(selectedVoucher.discountValue)})`
-                  )
-                ) : "0"}
-              </span>
-            </p>
-
-
-
-            <Divider style={{ marginTop: 5, marginBottom: 10 }} ></Divider>
-            <h4 className="checkout-summary__totals">Total <span>
-              {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(totalCost)}
-            </span></h4>
+          <div className="total-row">
+            <span>Discount</span>
+            <span>{discount === 0 ? "0" : `- ${formatCurrency(discount)}`}</span>
+          </div>
+          <Divider className="totals-divider" />
+          <div className="total-row final-total">
+            <span>Total</span>
+            <span>{formatCurrency(totalCost)}</span>
           </div>
         </div>
       </div>
-      <Drawer
-        open={isModalVisible}
-        onClose={handleCloseSuccesDrawe}
-        placement="right" 
-        width={400} 
-      >
+
+      <Drawer open={modals.orderSuccess} onClose={handleCloseSuccessDrawer} placement="right" width={400}>
         <OrderSuccess data={modalData} />
       </Drawer>
-      <Modal
-        open={isModalVoucherVisible}
-        onCancel={() => setisModalVoucherVisible(false)}
-        centered
-        footer={null}
-      >
+
+      <Modal open={modals.voucher} onCancel={() => setModals(prev => ({ ...prev, voucher: false }))} centered footer={null}>
         <h3>Select a Voucher</h3>
         <Radio.Group onChange={(e) => setSelectedVoucher(vouchers.find(v => v.voucherID === e.target.value))}>
           {vouchers.map((voucher) => (
             <Card key={voucher.voucherID} className="voucher-card">
               <Radio value={voucher.voucherID}>
                 {voucher.code} - {voucher.freeShipping ? (
-
                   <>
-                    <CarOutlined style={{ color: "green" }} />  Freeship
+                    <CarOutlined className="voucher-icon free-shipping" /> Free shipping
                   </>
                 ) : voucher.discountType === "PERCENT" ? (
                   <>
-                    <TagOutlined style={{ color: "red" }} /> {voucher.discountValue}% off coupon
+                    <TagOutlined className="voucher-icon discount" /> {voucher.discountValue}% off
                   </>
                 ) : (
                   <>
-                    <TagOutlined style={{ color: "red" }} /> {voucher.discountValue?.toLocaleString() || "0"}₫ off coupon
+                    <TagOutlined className="voucher-icon discount" /> {voucher.discountValue?.toLocaleString() || "0"}₫ off
                   </>
                 )}
               </Radio>
             </Card>
           ))}
         </Radio.Group>
-
         <div style={{ marginTop: 16 }}>
-          <Button type="primary" onClick={() => setisModalVoucherVisible(false)}>
-            Select
-          </Button>
+          <Button type="primary" onClick={() => setModals(prev => ({ ...prev, voucher: false }))}>Select</Button>
         </div>
       </Modal>
-      <Modal
-        open={isModalAddressVisible}
-        onCancel={() => setIsModalAddressVisible(false)}
-        centered
-        footer={null}
-      >
+
+      <Modal open={modals.addressSelection} onCancel={() => setModals(prev => ({ ...prev, addressSelection: false }))} centered footer={null}>
         <h3>Select a Shipping Address</h3>
         <Radio.Group
           onChange={(e) => handleSelectAddress(addresses.find(addr => addr.addressID === e.target.value))}
@@ -453,18 +505,47 @@ const Checkout = () => {
                   <strong>{address.fullName}</strong>
                   {address.default && <Tag color="blue">Default</Tag>}
                 </div>
-
                 <div>{address.phone}</div>
                 <div>{`${address.street}, ${address.ward}, ${address.district}, ${address.city}`}</div>
               </Radio>
             </Card>
           ))}
         </Radio.Group>
+        <div style={{ marginTop: 16 }}>
+          <Button style={{ marginLeft: 8 }} onClick={() => setModals(prev => ({ ...prev, addressSelection: false, addAddress: true }))}>
+            Add New Address
+          </Button>
+        </div>
       </Modal>
 
+      <Modal
+        open={modals.addAddress}
+        onCancel={() => {
+          setModals(prev => ({ ...prev, addAddress: false, ...(addresses.length > 0 && { addressSelection: true }) }));
+          if (addresses.length === 0) navigate(-1);
+        }}
+        centered
+        footer={null}
+        title="Add New Address"
+      >
+        <AddressAddForm onSubmit={handleAddAddressSubmit} />
+      </Modal>
 
-
-    </>
+      <Modal
+        open={modals.giftSelection}
+        onCancel={() => setModals(prev => ({ ...prev, giftSelection: false }))}
+        centered
+        footer={null}
+        title="Select Size and Color for Gift"
+      >
+        <GiftSelectionForm
+          variants={giftProductVariants.productDetails}
+          onSelect={(color, size) => handleGiftSelection(currentGiftItem.promotion.giftProductID, color, size)}
+          productName={giftProductVariants.productName}
+          productImage={imageGiftProduct}
+        />
+      </Modal>
+    </div>
   );
 };
 

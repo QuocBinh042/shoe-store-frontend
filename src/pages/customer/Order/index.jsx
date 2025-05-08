@@ -1,11 +1,12 @@
 import React from "react";
-import { Card, Typography, Row, Col, Button, Divider } from "antd";
+import { Card, Typography, Row, Col, Button, Divider, Tag } from "antd";
 import { CheckCircleOutlined } from "@ant-design/icons";
 
 const { Title, Text } = Typography;
 
 const OrderSuccess = ({ data }) => {
-  if (!data) return null; 
+  if (!data) return null;
+
   const handlePayment = () => {
     if (data.vnPayUrl) {
       window.location.href = data.vnPayUrl;
@@ -15,10 +16,14 @@ const OrderSuccess = ({ data }) => {
   const handleLater = () => {
     window.location.href = "/";
   };
+
+  // Hàm định dạng giá tiền
+  const formatCurrency = (value) => new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(value);
+
   return (
     <div>
       <Card bordered={false}>
-        {/* Biểu tượng và thông báo thành công */}
+        
         <Row justify="center" align="middle">
           <CheckCircleOutlined style={{ fontSize: "48px", color: "#52c41a" }} />
         </Row>
@@ -30,13 +35,13 @@ const OrderSuccess = ({ data }) => {
         <Row justify="center">
           <Text type="secondary" style={{ textAlign: "center" }}>
             The order confirmation has been sent to{" "}
-            <Text strong>{data.email}</Text>
+            <Text strong>{data.email || "your email"}</Text>
           </Text>
         </Row>
 
         <Divider />
 
-        {/* Chi tiết giao dịch */}
+        
         <div style={{ marginBottom: "16px" }}>
           <Text type="secondary">Transaction Date</Text>
           <div>{data.transactionDate}</div>
@@ -53,42 +58,77 @@ const OrderSuccess = ({ data }) => {
         <Divider />
 
         <Title level={4}>Your Order</Title>
-        {data.products.map((product) => (
-          <Row align="middle" key={product.detail.productDetailID}>
-            <Col span={6}>
-              <img
-                src={product.image}
-                alt={product.name}
-                style={{
-                  width: "60px",
-                  height: "60px",
-                  objectFit: "cover",
-                  borderRadius: "4px",
-                }}
-              />
-            </Col>
-            <Col span={12}>
-              <div>{product.name}</div>
-              <Text type="secondary">{`${product.detail.color} / ${product.detail.size}`}</Text>
-              <div>x{product.quantity}</div>
-            </Col>
-            <Col span={6} style={{ textAlign: "right" }}>
-              {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(
-                product.quantity * product.price
+        {data.products.map((product) => {
+          
+          const giftForProduct = data.gifts?.find(gift => gift.productKey === String(product.key));
+
+
+          return (
+            <div key={product.detail.productDetailID}>
+              
+              <Row align="middle" style={{ marginBottom: giftForProduct ? "8px" : "16px" }}>
+                <Col span={6}>
+                  <img
+                    src={product.image}
+                    sizes={50}
+                    style={{
+                      width: "60px",
+                      height: "60px",
+                      objectFit: "cover",
+                      borderRadius: "4px",
+                    }}
+                  />
+                </Col>
+                <Col span={12}>
+                  <div>{product.name}</div>
+                  <Text type="secondary">{`${product.detail.color} / ${product.detail.size}`}</Text>
+                  <div>x{product.quantity}</div>
+                </Col>
+                <Col span={6} style={{ textAlign: "right" }}>
+                  {formatCurrency(product.price)}
+                </Col>
+              </Row>
+
+              
+              {giftForProduct && (
+                <Row align="middle" style={{ marginBottom: "16px", marginLeft: "20px",}}>
+                  <Col span={6}>
+                    <img
+                      src={giftForProduct.image || product.image} 
+                      alt={giftForProduct.name}
+                      style={{
+                        width: "40px",
+                        height: "40px",
+                        objectFit: "cover",
+                        borderRadius: "4px",
+                      }}
+                    />
+                  </Col>
+                  <Col span={18}>
+                    <div style={{ fontSize: "14px"}}>
+                      <Tag color="green" style={{ marginRight: "8px" }}>Gift</Tag>
+                      <Text style={{ fontSize: "14px" }}>{giftForProduct.name}</Text>
+                    </div>
+                    <Text type="secondary" style={{ fontSize: "12px" }}>{`${giftForProduct.color} / ${giftForProduct.size}`}</Text>
+                    <div style={{ fontSize: "12px" }}>x{giftForProduct.quantity}</div>
+                  </Col>
+                  {/* <Col span={6} style={{ textAlign: "right" }}>
+                    <Text style={{ fontSize: "14px" }}>0 ₫</Text>
+                  </Col> */}
+                </Row>
               )}
-            </Col>
-          </Row>
-        ))}
+            </div>
+          );
+        })}
 
         <Divider />
+
         <Row justify="space-between" style={{ marginBottom: "8px" }}>
           <Col>
             <Text>Subtotal</Text>
           </Col>
           <Col>
-            <Text>
-              {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(data.subtotal)}
-            </Text>
+            <Text>{formatCurrency(data.subtotal)}</Text>
           </Col>
         </Row>
         <Row justify="space-between" style={{ marginBottom: "8px" }}>
@@ -96,9 +136,7 @@ const OrderSuccess = ({ data }) => {
             <Text>Shipping cost</Text>
           </Col>
           <Col>
-            <Text>
-              {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(data.shippingCost)}
-            </Text>
+            <Text>{formatCurrency(data.shippingCost)}</Text>
           </Col>
         </Row>
 
@@ -110,38 +148,26 @@ const OrderSuccess = ({ data }) => {
           </Col>
           <Col>
             <Title level={3} style={{ color: "#1890ff" }}>
-              {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(data.total)}
+              {formatCurrency(data.total)}
             </Title>
           </Col>
         </Row>
+
         {data.paymentMethod === "VNPay" ? (
           <Row justify="space-between" gutter={16}>
             <Col span={12}>
-              <Button
-                type="primary"
-                block
-              onClick={handlePayment}
-              >
+              <Button type="primary" block onClick={handlePayment}>
                 Continue Payment
               </Button>
             </Col>
             <Col span={12}>
-              <Button
-                type="default"
-                block
-              onClick={handleLater}
-              >
+              <Button type="default" block onClick={handleLater}>
                 Pay Later
               </Button>
             </Col>
           </Row>
         ) : (
-          <Button
-            type="primary"
-            block
-            style={{ marginTop: "16px" }}
-          onClick={handleLater}
-          >
+          <Button type="primary" block style={{ marginTop: "16px" }} onClick={handleLater}>
             Continue Shopping
           </Button>
         )}

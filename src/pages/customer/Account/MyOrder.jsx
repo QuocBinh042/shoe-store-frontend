@@ -3,13 +3,10 @@ import { Tabs } from 'antd';
 import OrderItem from './OrderItem';
 import { useSelector } from "react-redux";
 import { fetchOrderByUser } from '../../../services/orderService';
-import { fetcPaymentByOrder } from '../../../services/paymentService';
-import { fetchOrderDetailByOrder } from '../../../services/orderDetailService';
-import { image } from 'framer-motion/client';
 const onChange = (key) => {
   // console.log(key);
 };
-
+const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_PRODUCT_IMAGE_BASE_URL;
 
 function MyOrder() {
   const [orders, setOrders] = useState([]);
@@ -18,7 +15,7 @@ function MyOrder() {
     if (user?.userID) {
       loadOrdersWithDetails(user.userID);
     } else {
-      setOrders([]); 
+      setOrders([]);
     }
   }, [user]);
   const loadOrdersWithDetails = async (userId) => {
@@ -31,32 +28,45 @@ function MyOrder() {
         setOrders([]);
         return;
       }
- 
+  
       const detailedOrders = await Promise.all(
         fetchedOrders.map(async (order) => {
           console.log(order)
           return {
-            id: order.orderDTO.orderID,
-            name: order.orderDTO.user.name || "Unknown",
-            phone:  order.orderDTO.user.phoneNumber || "N/A",
-            date:  order.orderDTO.orderDate,
-            status:  order.orderDTO.status,
-            paymentMethod: order.orderDTO.paymentMethod,
-            shippingAddress: order.orderDTO.shippingAddress,
-            total:  order.orderDTO.total,
-            details: Array.isArray(order.orderDetailDTOs) ? order.orderDetailDTOs.map(detail => ({
-              id: detail.productDetail.productDetailID,
-              price: detail.price,
-              quantity: detail.quantity,
-              size: detail?.productDetail?.size || "N/A",
-              color: detail?.productDetail?.color || "N/A",
-              stockQuantity: detail?.productDetail?.stockQuantity || 0,
-              // image:detail
-            })) : [],
-            code:  order.orderDTO.code,
-            paymentStatus:order.paymentDTO?.status || "Unknown",
-            feeShip:  order.orderDTO.feeShip,
-            discount:  order.orderDTO.discount
+            id: order.orderResponse.orderID,
+            name: order.orderResponse.user.name || "Unknown",
+            phone: order.orderResponse.user.phoneNumber || "N/A",
+            date: order.orderResponse.orderDate,
+            status: order.orderResponse.status,
+            paymentMethod: order.orderResponse.paymentMethod,
+            shippingAddress: order.orderResponse.shippingAddress,
+            total: order.orderResponse.total,
+            details: Array.isArray(order.orderDetailsResponse)
+              ? order.orderDetailsResponse.map(detail => {
+                  const hasGift = detail.giftProductDetail;
+                  return {
+                    id: detail.orderDetailId,
+                    price: detail.price,
+                    quantity: detail.quantity,
+                    size: detail.productDetails?.size || "N/A",
+                    color: detail.productDetails?.color || "N/A",
+                    image: `${CLOUDINARY_BASE_URL}${detail.imageURL}`,
+                    gift: hasGift
+                      ? {
+                          giftImageURL: detail.giftImageURL ? `${CLOUDINARY_BASE_URL}${detail.giftImageURL}` : null,
+                          giftProductName: detail.giftProductName || "Gift Item",
+                          giftSize: detail.giftProductDetail?.size || "N/A",
+                          giftColor: detail.giftProductDetail?.color || "N/A",
+                          giftQuantity: detail.giftQuantity || 1,
+                        }
+                      : null,
+                  };
+                })
+              : [],
+            code: order.orderResponse.code,
+            paymentStatus: order.paymentResponse.status,
+            feeShip: order.orderResponse.feeShip,
+            discount: order.orderResponse.voucherDiscount,
           };
         })
       );
@@ -66,8 +76,8 @@ function MyOrder() {
       console.error("Failed to load orders with details:", error);
     }
   };
-  
-  
+
+
   const filterOrdersByStatus = (status) =>
     orders.filter((order) => order.status === status);
 

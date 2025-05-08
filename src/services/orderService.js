@@ -5,8 +5,6 @@ export const addOrder = async (order) => {
     if (data) {
         console.log('Order added successfully:', data);
     }
-
-
     return data;
 };
 

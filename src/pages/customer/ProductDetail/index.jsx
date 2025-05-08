@@ -1,38 +1,39 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { Row, Col, Button, Rate, InputNumber, Image, Tag, Spin, Modal } from "antd";
+import { Row, Col, Button, InputNumber, Image, Tag, Spin, Modal } from "antd";
+import { ShoppingCartOutlined, ShoppingOutlined, GiftOutlined } from "@ant-design/icons";
 import "./ProductDetail.scss";
-import { ShoppingCartOutlined, ShoppingOutlined } from "@ant-design/icons";
 import RelatedProducts from "./RelatedProducts";
 import Review from "./Review";
 import { useSelector } from "react-redux";
 import { fetchProductDetailByProductId } from "../../../services/productDetailService";
 import { addCartItem } from "../../../services/cartItemService";
+
 const ProductDetails = () => {
   const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_PRODUCT_IMAGE_BASE_URL;
   const navigate = useNavigate();
   const { productID } = useParams();
   const [product, setProduct] = useState([]);
-  const [mainImage, setMainImage] = useState()
+  const [mainImage, setMainImage] = useState();
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState(null);
   const [selectedColor, setSelectedColor] = useState(null);
-
   const [filteredSizes, setFilteredSizes] = useState([]);
-
+  const [promotion, setPromotion] = useState(null);
   const [availableColors, setAvailableColors] = useState([]);
   const [selectedStock, setSelectedStock] = useState(null);
   const [productDetails, setProductDetails] = useState([]);
+  const [giftProduct, setGiftProduct] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const user = useSelector((state) => state.account.user);
   const location = useLocation();
+
   useEffect(() => {
     const fetchProduct = async () => {
       setIsLoading(true);
       try {
         const details = await fetchProductDetailByProductId(productID);
-        console.log(details)
-        const images = details.imageURL?.map(img => `${CLOUDINARY_BASE_URL}${productID}/${img}`) || [];
+        const images = details.imageURL?.map(img => `${CLOUDINARY_BASE_URL}${img}`) || [];
         if (details) {
           setProduct({
             productName: details.productName || "No name",
@@ -41,12 +42,41 @@ const ProductDetails = () => {
             description: details.description || "No description",
             imageURL: images,
             price: details.price || 0,
-            discount: details.discountPrice
+            discount: details.discountPrice,
           });
-
+          setPromotion(details.promotion);
           setProductDetails(details.productDetails || []);
-          setAvailableColors([...new Set(details.productDetails?.map(d => d.color))] || []);
+
+          if (details.promotion?.type === "GIFT" && details.promotion.giftProductID) {
+            try {
+              const giftDetails = await fetchProductDetailByProductId(details.promotion.giftProductID);
+              setGiftProduct(giftDetails);
+            } catch (giftError) {
+              console.error("Error fetching gift product:", giftError);
+              setGiftProduct(null);
+            }
+          }
+
+          const colors = [...new Set(details.productDetails?.map(d => d.color))] || [];
+          setAvailableColors(colors);
           setMainImage(images.length > 0 ? images[0] : "fallback-image-url");
+          if (colors.length > 0) {
+            const firstColor = colors[0];
+            setSelectedColor(firstColor);
+            const sizesForColor = details.productDetails
+              .filter((detail) => detail.color === firstColor && detail.stockQuantity > 0)
+              .map((detail) => detail.size);
+            const uniqueSizes = [...new Set(sizesForColor)];
+            setFilteredSizes(uniqueSizes);
+            if (uniqueSizes.length > 0) {
+              const firstSize = uniqueSizes[0];
+              setSelectedSize(firstSize);
+              const stock = details.productDetails.find(
+                (detail) => detail.color === firstColor && detail.size === firstSize
+              )?.stockQuantity;
+              setSelectedStock(stock ?? 0);
+            }
+          }
         } else {
           setProduct(null);
         }
@@ -60,9 +90,6 @@ const ProductDetails = () => {
 
     if (productID) fetchProduct();
   }, [productID]);
-
-
-
 
   const handleBuyNow = () => {
     if (!user) {
@@ -106,13 +133,13 @@ const ProductDetails = () => {
       size: selectedSize,
       image: product?.imageURL?.[0],
       stockQuantity: selectedDetail.stockQuantity,
+      promotion: promotion,
+      productID: productID
     };
 
     const itemsToCheckout = [formattedItem];
     navigate("/checkout", { state: { selectedItems: itemsToCheckout } });
   };
-
-
 
   const changeImage = (image) => {
     setMainImage(image);
@@ -120,27 +147,36 @@ const ProductDetails = () => {
 
   const handleSizeSelect = (size) => {
     setSelectedSize(size);
+    setQuantity(1);
     const stock = productDetails.find(
       (detail) => detail.color === selectedColor && detail.size === size
     )?.stockQuantity;
-
     setSelectedStock(stock ?? 0);
   };
 
-
   const handleColorSelect = (color) => {
     setSelectedColor(color);
-
+    setQuantity(1);
     const sizesForColor = productDetails
       .filter((detail) => detail.color === color && detail.stockQuantity > 0)
       .map((detail) => detail.size);
-
-    setFilteredSizes([...new Set(sizesForColor)]);
+    const uniqueSizes = [...new Set(sizesForColor)];
+    setFilteredSizes(uniqueSizes);
     setSelectedSize(null);
+    setSelectedStock(0);
   };
 
-
   const handleAddToCart = () => {
+    if (!user) {
+      Modal.confirm({
+        title: "Please log in to continue shopping",
+        content: "You need to login to activate shopping cart",
+        okText: "Login",
+        cancelText: "Cancel",
+        onOk: () => navigate("/login", { state: { from: location.pathname } }),
+      });
+      return;
+    }
     if (!selectedSize) {
       Modal.error({ content: "Please select size!" });
       return;
@@ -168,18 +204,17 @@ const ProductDetails = () => {
       quantity,
     };
     try {
-      addCartItem(cartItem)
+      addCartItem(cartItem);
       Modal.success({ content: "Added to cart successfully!" });
     } catch (error) {
       Modal.error({
         content: "Failed add to cart. Please try again.",
       });
     }
-
   };
 
   const handleQuantityChange = (value) => {
-    if (value > selectedStock) {
+    if (value > selectedStock && selectedStock > 0) {
       Modal.warning({
         content: `Only ${selectedStock} product stock.`,
       });
@@ -196,168 +231,169 @@ const ProductDetails = () => {
       </div>
     );
   }
+
   return (
-    <div className="product-details-container">
-      <Row gutter={24} className="product-details">
-        <Col span={18} className="product-image">
-          <Row gutter={24}>
-            <Col span={10} className="product-image">
+    <div className="product-detail-container">
+      <Row gutter={40} className="product-details">
+        <Col span={16}>
+          <Row gutter={20}>
+            <Col span={8} className="image-gallery">
               <Image
-                width="100%"
                 src={mainImage}
-                alt="Main Product"
+                alt={product.productName}
                 className="main-image"
+                preview={false}
               />
-              <Row gutter={[10, 10]} className="thumbnail-images" justify="center">
-                {(() => {
-                  let displayedImages = product?.imageURL || [];
-                  if (displayedImages.length < 2) {
-                    displayedImages = [...displayedImages, ...displayedImages.slice(0, 2 - displayedImages.length)];
-                  }
-                  displayedImages = displayedImages.slice(0, 5);
-
-                  return displayedImages.map((image, index) => (
-                    <Col key={index}>
-                      <Image
-                        preview={false}
-                        src={image}
-                        width={60}
-                        alt={`Thumbnail ${index + 1}`}
-                        onClick={() => setMainImage(image)}
-                        className={`thumbnail ${mainImage === image ? "active" : ""}`}
-                        style={{
-                          cursor: "pointer",
-                          border: mainImage === image ? "2px solid #1890ff" : "1px solid #ddd",
-                          padding: "2px",
-                          borderRadius: "4px"
-                        }}
-                      />
-                    </Col>
-                  ));
-                })()}
-              </Row>
+              <div className="thumbnail-container">
+                {product.imageURL.slice(0, 5).map((image, index) => (
+                  <div className="thumbnail-wrapper" key={index}>
+                    <Image
+                      src={image}
+                      alt={`Thumbnail ${index + 1}`}
+                      className={`thumbnail ${mainImage === image ? "active" : ""}`}
+                      onClick={() => changeImage(image)}
+                      preview={false}
+                    />
+                  </div>
+                ))}
+              </div>
             </Col>
-
-
-            <Col span={13} className="product-info">
-              <h3>{product?.brandName || "Unknown Brand"} / {product?.categoryName || "Unknown Category"}</h3>
-
-
-              <h1>{product?.productName}</h1>
-              <div className="product-pricing">
-                {product.discount !== product.price ? (
-                  <>
-                    <span className="discounted-price">
-                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.discount)}
+            <Col span={16} className="product-info">
+              <div className="info-header">
+                <h3>{product.brandName} / {product.categoryName}</h3>
+                <h1>{product.productName}</h1>
+              </div>
+              {promotion && (
+                <div className="promotion-box">
+                  <Tag icon={<GiftOutlined />} color="orange">
+                    Special Promotion
+                  </Tag>
+                  {promotion.type === "PERCENTAGE" && (
+                    <span>
+                      Save {promotion.discountValue}% 
+                      {promotion.maxDiscount != null ? ` (Max ${(promotion.maxDiscount).toLocaleString()}₫)` : ""}
                     </span>
-                    <span className="original-price" style={{ textDecoration: "line-through", color: "#888" }}>
-                      {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}
+                  )}
+                  {promotion.type === "FIXED" && (
+                    <span>
+                      Save {(promotion.discountValue)?.toLocaleString() || "0"}₫
                     </span>
-                  </>
-                ) : (
-                  <span className="discounted-price">
-                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price)}
+                  )}
+                  {promotion.type === "BUYX" && (
+                    <span>Get 1 free when buying {(promotion.buyQuantity)?.toLocaleString() || "0"}+ items</span>
+                  )}
+                  {promotion.type === "GIFT" && giftProduct && (
+                    <span>Free {giftProduct.productName}</span>
+                  )}
+                </div>
+              )}
+              <p className="description">{product.description}</p>
+              <div className="pricing">
+                <span className="discounted-price">
+                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.discount * quantity)}
+                </span>
+                {product.discount !== product.price && (
+                  <span className="original-price">
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price * quantity)}
                   </span>
                 )}
               </div>
-
-              <h3>DESCRIPTION</h3>
-              <span>{product?.description}</span>
-              <h3>COLOR</h3>
-              <Row gutter={10} className="options">
-                {availableColors.map((color, index) => (
-                  <Col key={index}>
-                    <Button
-                      className={`box ${selectedColor === color ? "active" : ""}`}
-                      onClick={() => handleColorSelect(color)}
-                    >
-                      <span style={{ display: 'flex', alignItems: "center", gap: "8px" }}>
-                        <span style={{
-                          width: "16px", height: "16px",
-                          backgroundColor: color.toLowerCase(),
-                          borderRadius: "20%", border: "1px solid #ddd"
-                        }} />
+              <div className="variant-selection">
+                <div className="color-section">
+                  <h3>Color</h3>
+                  <div className="color-options">
+                    {availableColors.map((color) => (
+                      <Button
+                        key={color}
+                        className={`color-btn ${selectedColor === color ? "active" : ""}`}
+                        onClick={() => handleColorSelect(color)}
+                      >
+                        <span
+                          className="color-swatch"
+                          style={{ backgroundColor: color.toLowerCase() }}
+                        />
                         {color}
-                      </span>
-                    </Button>
-                  </Col>
-                ))}
-              </Row>
-
-              <h3>SIZE</h3>
-              {selectedColor ? (
-                filteredSizes.length > 0 ? (
-                  <Row gutter={10} className="options">
-                    {filteredSizes.map((size, index) => {
-                      const stock = productDetails.find(
-                        (detail) => detail.color === selectedColor && detail.size === size
-                      )?.stockQuantity;
-
-                      return (
-                        <Col key={index}>
-                          <Button
-                            className={`box ${selectedSize === size ? "active" : ""}`}
-                            onClick={() => handleSizeSelect(size)}
-                            disabled={stock === 0}
-                          >
-                            {size.replace("SIZE_", "")}
-                          </Button>
-                        </Col>
-                      );
-                    })}
-                  </Row>
-                ) : <p>There are no sizes available for this color.</p>
-              ) : <p>Please select color first.</p>}
-
-
-              {selectedSize && (
-                <div style={{ marginTop: '10px' }}>
-                  <span>Stock for size {selectedSize.replace("SIZE_", "")}: </span>
-                  <strong>{selectedStock}</strong>
+                      </Button>
+                    ))}
+                  </div>
                 </div>
-              )}
-
+                <div className="size-section">
+                  <h3>Size</h3>
+                  {selectedColor ? (
+                    filteredSizes.length > 0 ? (
+                      <div className="size-options">
+                        {filteredSizes.map((size) => {
+                          const stock = productDetails.find(
+                            (detail) => detail.color === selectedColor && detail.size === size
+                          )?.stockQuantity;
+                          return (
+                            <Button
+                              key={size}
+                              className={`size-btn ${selectedSize === size ? "active" : ""}`}
+                              onClick={() => handleSizeSelect(size)}
+                              disabled={stock === 0}
+                            >
+                              {size.replace("SIZE_", "")}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <p>No sizes available for this color.</p>
+                    )
+                  ) : (
+                    <p>Please select a color first.</p>
+                  )}
+                  {selectedSize && (
+                    <p className="stock-info">Stock for size {selectedSize.replace("SIZE_", "")}: {selectedStock}</p>
+                  )}
+                </div>
+              </div>
             </Col>
           </Row>
-
         </Col>
-        <Col span={6}>
-          <div className="order-summary">
-            <h3>Order Details</h3>
-            <div className="order-item">
-              <span>Quantity</span>
-              <InputNumber
-                min={1}
-                value={quantity}
-                onChange={handleQuantityChange}
-                disabled={!selectedSize}
-              />
-            </div>
-            <div className="order-item">
-              <span>Size</span>
-              <span>
-                {selectedSize ? selectedSize.replace("SIZE_", "") : "No size selected"}
-              </span>
-
-            </div>
-            <div className="order-item">
-              <span>Price</span>
-              <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.discount)}</span>
-            </div>
-            <div className="order-total">
-              <span>Sub Total</span>
-              <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.discount * quantity)}</span>
-            </div>
-
-            <div className="order-actions">
-              <Button icon={<ShoppingCartOutlined />} className="btn-buy-now" onClick={handleBuyNow}>Buy Now</Button>
-              <Button icon={<ShoppingOutlined />} className="btn-add-to-cart" onClick={handleAddToCart} >Add To Cart </Button>
-            </div>
+        <Col span={8} className="order-summary">
+          <h3>Order Details</h3>
+          <div className="order-item">
+            <span>Quantity</span>
+            <InputNumber
+              min={1}
+              value={quantity}
+              onChange={handleQuantityChange}
+              className="quantity-input"
+            />
+          </div>
+          <div className="order-item">
+            <span>Size</span>
+            <span>{selectedSize ? selectedSize.replace("SIZE_", "") : "N/A"}</span>
+          </div>
+          <div className="order-item">
+            <span>Color</span>
+            <span>{selectedColor || "N/A"}</span>
+          </div>
+          <div className="order-item">
+            <span>Price</span>
+            <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price * quantity)}</span>
+          </div>
+          <div className="order-item">
+            <span>Discount</span>
+            <span>-{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format((product.price - product.discount) * quantity)}</span>
+          </div>
+          <div className="order-total">
+            <span>Sub Total</span>
+            <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.discount * quantity)}</span>
+          </div>
+          <div className="order-actions">
+            <Button icon={<ShoppingCartOutlined />} className="buy-now-btn" onClick={handleBuyNow}>
+              Buy Now
+            </Button>
+            <Button icon={<ShoppingOutlined />} className="add-cart-btn" onClick={handleAddToCart}>
+              Add to Cart
+            </Button>
           </div>
         </Col>
       </Row>
       <Review productID={productID} />
-
       <RelatedProducts productId={productID} />
     </div>
   );

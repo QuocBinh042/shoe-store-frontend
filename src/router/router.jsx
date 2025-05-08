@@ -26,6 +26,8 @@ import MarketingIntegration from "../pages/admin/Promotion/MarketingIntegration"
 import CustomerManager from "../pages/admin/Customer";
 import CustomerDetail from "../pages/admin/Customer/CustomerDetails";
 import ProductForm from "../pages/admin/Product/Form/ProductForm";
+import VerifyOtpPage from "../pages/auth/VerifyOtpPage";
+import AdminRoute from "../components/PrivateRoutes/AdminRoute";
 export const routes = [
   {
     path: "/",
@@ -35,35 +37,48 @@ export const routes = [
       { path: "/", element: <Home />, breadcrumb: "Home" },
       { path: "search", element: <Search />, breadcrumb: "Search" },
       { path: "product-detail/:productID", element: <ProductDetail />, breadcrumb: "ProductDetail" },
-      { path: "cart", element: <Cart />, breadcrumb: "Cart" },
+      { path: "cart",element: (
+        <PrivateRoute>
+          <Cart />
+        </PrivateRoute>
+      ), breadcrumb: "Cart" },
       { path: "payment-result", element: <PaymentResult />, breadcrumb: "Payment" },
       { path: "order", element: <OrderSuccess />, breadcrumb: "Order" },
       {
         path: "checkout",
         element: (
-            <PrivateRoute>
-              <Checkout />
-            </PrivateRoute>
+          <PrivateRoute>
+            <Checkout />
+          </PrivateRoute>
         ),
         breadcrumb: "Checkout",
       },
       {
         path: "account",
         element: (
-            <PrivateRoute>
-              <Account />
-            </PrivateRoute>
+          <PrivateRoute>
+            <Account />
+          </PrivateRoute>
         ),
         breadcrumb: "Account",
       },
     ],
   },
   { path: "*", element: <Error />, breadcrumb: "Not Found" },
-  { path: "/login", element: <Login /> },
+  {
+    path: "/login", element: <Login /> ,
+  },
+  {
+    path: "/verify-otp", element: <VerifyOtpPage/> ,
+  },
   { path: "/sign-up", element: <SignUp /> },
   {
     path: "/admin",
-    element: <AdminLayout />,
+    element: (
+      <AdminRoute>
+        <AdminLayout />
+      </AdminRoute>
+    ),
     children: [
       {
         path: "dashboard",
@@ -138,7 +153,7 @@ export const routes = [
     ],
   }
 ]
-  
+
 
 
 

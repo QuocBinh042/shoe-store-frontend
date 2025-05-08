@@ -23,6 +23,7 @@ const login = async (values) => {
     throw error;
   }
 };
+
 const signup = async (values) => {
   try {
     const data = await postData("/auth/sign-up", values);
@@ -31,6 +32,30 @@ const signup = async (values) => {
     throw error;
   }
 };
+
+const verifyOtp = async ({ email, otp }) => {
+  try {
+    const data = await apiClient.post("/auth/verify-otp", null, {
+      params: { email, otp },
+    });
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const resendOtp = async (email) => {
+  try {
+    const data = await apiClient.post("/auth/resend-verification", null, {
+      params: { email },
+    });
+    console.log(data)
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
+
 const logout = async () => {
   try {
     await apiClient.post("/auth/logout");
@@ -53,10 +78,22 @@ const refreshAccessToken = async () => {
     throw error;
   }
 };
-
+const checkEmail = async (email) => {
+  try {
+    const response = await apiClient.get("/auth/check-email", {
+      params: { email },
+    });
+    return response.data; 
+  } catch (error) {
+    throw error;
+  }
+};
 export const authService = {
   login,
   logout,
   refreshAccessToken,
-  signup
+  signup,
+  verifyOtp,
+  resendOtp,
+  checkEmail
 };

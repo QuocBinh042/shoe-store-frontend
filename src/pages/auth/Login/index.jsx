@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Form, Input, Button, Typography, Row, Col, Card, message } from "antd";
+import { Form, Input, Button, Typography, Row, Col, Card, message, Modal } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
@@ -15,28 +15,61 @@ const LoginPage = () => {
   const dispatch = useDispatch();
 
   const onFinish = async (values) => {
+    setLoading(true);
     try {
-      setLoading(true);
       const response = await authService.login(values);
-  
-      if (response?.statusCode === 200 && response?.data?.access_token) {
+      const { statusCode, data } = response;
+
+      if (statusCode === 200 && data?.access_token) {
         message.success("Login successful");
-  
-        const {user } = response.data;
+
+        const { user } = data;
         dispatch(setUser({
           userID: user.id,
           email: user.email,
           name: user.name,
           phoneNumber: user.phoneNumber,
-          roles: user.role,
+          roles: user.roles,
         }));
-        const redirectTo = location.state?.from || "/";
-        navigate(redirectTo, { replace: true });
+
+        const isAdmin = user.roles?.some(role => role.roleType === "SUPER_ADMIN");
+        console.log("Admin?",isAdmin)
+        if (isAdmin) {
+          navigate("/admin/dashboard", { replace: true });
+        } else {
+          const redirectTo = location.state?.from || "/";
+          navigate(redirectTo, { replace: true }); 
+        }
       } else {
         message.error("Login failed");
       }
     } catch (error) {
-      message.error("Error");
+      const err = error.response?.data;
+      const msg = err?.message || "Login error";
+
+      if (err?.statusCode === 409 && msg === "User is not activated") {
+        Modal.confirm({
+          title: "Account not activated",
+          content: "Your account has not been activated yet. Do you want to verify it now?",
+          okText: "Verify Now",
+          cancelText: "Cancel",
+          async onOk() {
+            try {
+              const email = values.email;
+              localStorage.setItem("verifyEmail", email);
+              localStorage.setItem("verifyPassword", values.password);
+              await authService.resendOtp(email);
+
+              message.success("OTP has been resent. Please check your email.");
+              navigate("/verify-otp");
+            } catch (e) {
+              message.error("Failed to resend OTP.");
+            }
+          },
+        });
+      } else {
+        message.error(msg);
+      }
     } finally {
       setLoading(false);
     }
