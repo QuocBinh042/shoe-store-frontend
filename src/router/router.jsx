@@ -10,7 +10,7 @@ import PaymentResult from "../pages/customer/Payment";
 import Login from "../pages/auth/Login";
 import SignUp from "../pages/auth/SignUp";
 import ProductDetail from "../pages/customer/ProductDetail";
-import PrivateRoute from "../components/PrivateRoutes";
+import PrivateRoute from "../components/PrivateRoutes/PrivateRoute";
 import AdminLayout from "../layouts/AdminLayout";
 import Dashboard from "../pages/admin/Dashboard";
 import ProductManager from "../pages/admin/Product";
