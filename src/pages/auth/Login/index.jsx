@@ -33,7 +33,6 @@ const LoginPage = () => {
         }));
 
         const isAdmin = user.roles?.some(role => role.roleType === "SUPER_ADMIN");
-        console.log("Admin?",isAdmin)
         if (isAdmin) {
           navigate("/admin/dashboard", { replace: true });
         } else {

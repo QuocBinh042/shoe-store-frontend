@@ -31,7 +31,7 @@ const RelatedProducts = ({ productId }) => {
   return (
     <div >
       <h1>Relatated Product</h1>
-      <Carousel arrows slidesToShow={5} dots={false} style={{ margin: 'auto', width: "100%" }}>
+      <Carousel arrows slidesToShow={5} dots={false} style={{width: "100%" }}>
         {relatedProducts.map((product) => {
           return (
             <Col key={product.productID}>
@@ -47,7 +47,7 @@ const RelatedProducts = ({ productId }) => {
                     <Image
                       preview={false}
                       alt={product.productName}
-                      src={product.imageURL?.length > 0 ? `${CLOUDINARY_BASE_URL}${product.imageURL[0]}` : ""}
+                      src={product.image? `${CLOUDINARY_BASE_URL}${product.image}` : ""}
                       style={{ width: "200px", height: "250px", objectFit: "contain" }}
                     />
 

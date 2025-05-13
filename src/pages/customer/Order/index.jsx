@@ -5,8 +5,8 @@ import { CheckCircleOutlined } from "@ant-design/icons";
 const { Title, Text } = Typography;
 
 const OrderSuccess = ({ data }) => {
+  const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_PRODUCT_IMAGE_BASE_URL;
   if (!data) return null;
-
   const handlePayment = () => {
     if (data.vnPayUrl) {
       window.location.href = data.vnPayUrl;
@@ -69,12 +69,12 @@ const OrderSuccess = ({ data }) => {
               <Row align="middle" style={{ marginBottom: giftForProduct ? "8px" : "16px" }}>
                 <Col span={6}>
                   <img
-                    src={product.image}
+                    src={CLOUDINARY_BASE_URL+product.detail.image}
                     sizes={50}
                     style={{
                       width: "60px",
                       height: "60px",
-                      objectFit: "cover",
+                      objectFit: "contain",
                       borderRadius: "4px",
                     }}
                   />
@@ -99,7 +99,7 @@ const OrderSuccess = ({ data }) => {
                       style={{
                         width: "40px",
                         height: "40px",
-                        objectFit: "cover",
+                        objectFit: "contain",
                         borderRadius: "4px",
                       }}
                     />
@@ -153,7 +153,7 @@ const OrderSuccess = ({ data }) => {
           </Col>
         </Row>
 
-        {data.paymentMethod === "VNPay" ? (
+        {data.paymentMethod === "VNPAY" ? (
           <Row justify="space-between" gutter={16}>
             <Col span={12}>
               <Button type="primary" block onClick={handlePayment}>

@@ -50,10 +50,10 @@ function MyOrder() {
                     quantity: detail.quantity,
                     size: detail.productDetails?.size || "N/A",
                     color: detail.productDetails?.color || "N/A",
-                    image: `${CLOUDINARY_BASE_URL}${detail.imageURL}`,
+                    image: `${CLOUDINARY_BASE_URL}${detail.productDetails?.image}`,
                     gift: hasGift
                       ? {
-                          giftImageURL: detail.giftImageURL ? `${CLOUDINARY_BASE_URL}${detail.giftImageURL}` : null,
+                          giftImageURL: detail.giftProductDetail?.image ? `${CLOUDINARY_BASE_URL}${detail.giftProductDetail.image}` : null,
                           giftProductName: detail.giftProductName || "Gift Item",
                           giftSize: detail.giftProductDetail?.size || "N/A",
                           giftColor: detail.giftProductDetail?.color || "N/A",

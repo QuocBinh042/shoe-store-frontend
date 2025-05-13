@@ -1,67 +1,66 @@
 // src/pages/admin/Order/modals/EditCustomerModal.jsx
 
-import React, { useEffect } from 'react';
-import { Modal, Form, Input, Typography } from 'antd';
+import React from 'react';
+import { Modal, Form, Input, Button } from 'antd';
 
-const { Text } = Typography;
-
-const EditCustomerModal = ({ open, onCancel, onSubmit, initialValues }) => {
+const EditCustomerModal = ({ open, onCancel, onSubmit, initialValues, disabled }) => {
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    if (open) form.setFieldsValue(initialValues);
-  }, [open, initialValues, form]);
-
-  const handleOk = () => {
-    form.validateFields().then((values) => {
+  const handleSubmit = () => {
+    form.validateFields().then(values => {
       onSubmit(values);
+      form.resetFields();
     });
   };
 
   return (
     <Modal
-      title={<Text strong style={{ fontSize: 18 }}>Edit Customer Information</Text>}
+      title="Edit Customer Information"
       open={open}
-      onOk={handleOk}
       onCancel={onCancel}
-      okText="Save Changes"
-      cancelText="Cancel"
-      styles={{ body: { padding: 24 } }}
-      style={{ top: 100 }}
+      footer={[
+        <Button key="cancel" onClick={onCancel}>
+          Cancel
+        </Button>,
+        <Button 
+          key="submit" 
+          type="primary" 
+          onClick={handleSubmit}
+          disabled={disabled}
+        >
+          Save Changes
+        </Button>,
+      ]}
     >
       <Form
         form={form}
         layout="vertical"
-        validateTrigger="onBlur"
+        initialValues={initialValues}
+        disabled={disabled}
       >
         <Form.Item
-          name="customerName"
-          label="Full Name"
-          rules={[]}
+          name="name"
+          label="Customer Name"
+          rules={[{ required: true, message: 'Please input customer name!' }]}
         >
-          <Input disabled placeholder="Customer Name" />
+          <Input />
         </Form.Item>
-
         <Form.Item
           name="email"
           label="Email"
           rules={[
-            { required: true, message: 'Email is required' },
-            { type: 'email', message: 'Email is not valid' },
+            { required: true, message: 'Please input email!' },
+            { type: 'email', message: 'Please enter a valid email!' }
           ]}
         >
-          <Input placeholder="Enter email" />
+          <Input />
         </Form.Item>
-
         <Form.Item
           name="phone"
           label="Phone Number"
-          rules={[
-            { required: true, message: 'Phone number is required' },
-            { pattern: /^\d{9,12}$/, message: 'Phone number must be 9-12 digits' },
-          ]}
+          rules={[{ required: true, message: 'Please input phone number!' }]}
         >
-          <Input placeholder="Enter phone number" />
+          <Input />
         </Form.Item>
       </Form>
     </Modal>

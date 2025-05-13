@@ -49,7 +49,6 @@ const resendOtp = async (email) => {
     const data = await apiClient.post("/auth/resend-verification", null, {
       params: { email },
     });
-    console.log(data)
     return data;
   } catch (error) {
     throw error;
@@ -88,6 +87,19 @@ const checkEmail = async (email) => {
     throw error;
   }
 };
+const changePassword = async ({ currentPassword, newPassword }) => {
+  try {
+    const response = await apiClient.post("/auth/change-password", {
+      currentPassword,
+      newPassword,
+    });
+    return response.data;
+  } catch (error) {
+    console.log(error)
+    throw error;
+  }
+};
+
 export const authService = {
   login,
   logout,
@@ -95,5 +107,6 @@ export const authService = {
   signup,
   verifyOtp,
   resendOtp,
-  checkEmail
+  checkEmail,
+  changePassword
 };

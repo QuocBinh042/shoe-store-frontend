@@ -9,6 +9,7 @@ const ProductGrid = ({ products, totalProducts, currentPage, onPageChange }) => 
   const handleDetails = (productID) => {
     navigate(`/product-detail/${productID}`);
   };
+ 
   const getPromotionLabel = (promotion) => {
     if (!promotion || !promotion.type) return "";
 
@@ -65,9 +66,10 @@ const ProductGrid = ({ products, totalProducts, currentPage, onPageChange }) => 
                 >
                   <Card
                     cover={
-                      product.imageURL?.length > 0 ? (
+                      product.image?.length > 0 ? (
                         (() => {
-                          const imageUrl = `${CLOUDINARY_BASE_URL}${product.imageURL[0]}`;
+                          const imageUrl = `${CLOUDINARY_BASE_URL}${product.image}`;
+                
                           return (
                             <img
                               alt={product.productName}

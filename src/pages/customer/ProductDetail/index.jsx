@@ -25,6 +25,8 @@ const ProductDetails = () => {
   const [productDetails, setProductDetails] = useState([]);
   const [giftProduct, setGiftProduct] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [uniqueImagesByColor, setUniqueImagesByColor] = useState({});
+  const [allUniqueImages, setAllUniqueImages] = useState([]); 
   const user = useSelector((state) => state.account.user);
   const location = useLocation();
 
@@ -33,19 +35,38 @@ const ProductDetails = () => {
       setIsLoading(true);
       try {
         const details = await fetchProductDetailByProductId(productID);
-        const images = details.imageURL?.map(img => `${CLOUDINARY_BASE_URL}${img}`) || [];
         if (details) {
           setProduct({
             productName: details.productName || "No name",
             categoryName: details.categoryName || "No category",
             brandName: details.brandName || "No brand",
             description: details.description || "No description",
-            imageURL: images,
             price: details.price || 0,
             discount: details.discountPrice,
           });
           setPromotion(details.promotion);
           setProductDetails(details.productDetails || []);
+
+          
+          const imagesByColor = {};
+          const allImagesSet = new Set();
+          details.productDetails.forEach((detail) => {
+            if (!imagesByColor[detail.color]) {
+              imagesByColor[detail.color] = new Set();
+            }
+            imagesByColor[detail.color].add(detail.image);
+            allImagesSet.add(detail.image);
+          });
+          const uniqueImages = {};
+          Object.keys(imagesByColor).forEach((color) => {
+            uniqueImages[color] = Array.from(imagesByColor[color]);
+          });
+          setUniqueImagesByColor(uniqueImages);
+          setAllUniqueImages(Array.from(allImagesSet));
+
+          if (details.productDetails.length > 0) {
+            setMainImage(details.productDetails[0].image);
+          }
 
           if (details.promotion?.type === "GIFT" && details.promotion.giftProductID) {
             try {
@@ -59,7 +80,6 @@ const ProductDetails = () => {
 
           const colors = [...new Set(details.productDetails?.map(d => d.color))] || [];
           setAvailableColors(colors);
-          setMainImage(images.length > 0 ? images[0] : "fallback-image-url");
           if (colors.length > 0) {
             const firstColor = colors[0];
             setSelectedColor(firstColor);
@@ -75,6 +95,7 @@ const ProductDetails = () => {
                 (detail) => detail.color === firstColor && detail.size === firstSize
               )?.stockQuantity;
               setSelectedStock(stock ?? 0);
+              setMainImage(uniqueImages[firstColor][0]); 
             }
           }
         } else {
@@ -131,7 +152,7 @@ const ProductDetails = () => {
       quantity: quantity,
       color: selectedColor,
       size: selectedSize,
-      image: product?.imageURL?.[0],
+      image: selectedDetail.image, 
       stockQuantity: selectedDetail.stockQuantity,
       promotion: promotion,
       productID: productID
@@ -141,10 +162,6 @@ const ProductDetails = () => {
     navigate("/checkout", { state: { selectedItems: itemsToCheckout } });
   };
 
-  const changeImage = (image) => {
-    setMainImage(image);
-  };
-
   const handleSizeSelect = (size) => {
     setSelectedSize(size);
     setQuantity(1);
@@ -152,6 +169,10 @@ const ProductDetails = () => {
       (detail) => detail.color === selectedColor && detail.size === size
     )?.stockQuantity;
     setSelectedStock(stock ?? 0);
+    const detail = productDetails.find(
+      (detail) => detail.color === selectedColor && detail.size === size
+    );
+    setMainImage(detail?.image);
   };
 
   const handleColorSelect = (color) => {
@@ -164,6 +185,19 @@ const ProductDetails = () => {
     setFilteredSizes(uniqueSizes);
     setSelectedSize(null);
     setSelectedStock(0);
+   
+    if (uniqueImagesByColor[color] && uniqueImagesByColor[color].length > 0) {
+      setMainImage(uniqueImagesByColor[color][0]);
+    }
+    if (uniqueSizes.length > 0) {
+      const firstSize = uniqueSizes[0];
+      setSelectedSize(firstSize);
+      const detail = productDetails.find(
+        (detail) => detail.color === color && detail.size === firstSize
+      );
+      setSelectedStock(detail?.stockQuantity ?? 0);
+      setMainImage(detail?.image);
+    }
   };
 
   const handleAddToCart = () => {
@@ -239,19 +273,20 @@ const ProductDetails = () => {
           <Row gutter={20}>
             <Col span={8} className="image-gallery">
               <Image
-                src={mainImage}
+                src={CLOUDINARY_BASE_URL + mainImage}
                 alt={product.productName}
                 className="main-image"
-                preview={false}
+                preview={true}
+                
               />
               <div className="thumbnail-container">
-                {product.imageURL.slice(0, 5).map((image, index) => (
+                {allUniqueImages.map((image, index) => (
                   <div className="thumbnail-wrapper" key={index}>
                     <Image
-                      src={image}
+                      src={CLOUDINARY_BASE_URL + image}
                       alt={`Thumbnail ${index + 1}`}
                       className={`thumbnail ${mainImage === image ? "active" : ""}`}
-                      onClick={() => changeImage(image)}
+                      onClick={() => setMainImage(image)}
                       preview={false}
                     />
                   </div>
@@ -290,11 +325,11 @@ const ProductDetails = () => {
               <p className="description">{product.description}</p>
               <div className="pricing">
                 <span className="discounted-price">
-                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.discount * quantity)}
+                  {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.discount)}
                 </span>
                 {product.discount !== product.price && (
                   <span className="original-price">
-                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price * quantity)}
+                    {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(product.price )}
                   </span>
                 )}
               </div>

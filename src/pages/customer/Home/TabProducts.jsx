@@ -19,7 +19,7 @@ const trendingData = [
 const mapProductData = (product) => {
   return {
     id: product.productID,
-    image: product.imageURLs,
+    image: product.imageURL,
     name: product.productName,
     price: product.price,
   };
@@ -164,6 +164,7 @@ const TabProducts = () => {
         setBestsellers(mappedBestSellers);
 
         const newArrivalsData = await fetchNewArrivals();
+        console.log(newArrivalsData)
         const mappedNewArrivals = newArrivalsData.map(mapProductData);
         setNewArrivals(mappedNewArrivals);
       } catch (error) {

@@ -7,6 +7,7 @@ export const fetchUserInfoById = async (id) => {
 
 export const updateUserInfo = async (id, user) => {
     const endpoint = `users/update/${id}`;
+    console.log(user)
     const data = await putData(endpoint, user);
     return data;
 };

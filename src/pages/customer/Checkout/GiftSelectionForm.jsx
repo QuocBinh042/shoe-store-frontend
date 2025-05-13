@@ -3,18 +3,27 @@ import { Row, Col, Button, message, Typography, Divider } from "antd";
 
 const { Title } = Typography;
 
-const GiftSelectionForm = ({ variants, onSelect, productName, productImage }) => {
-  const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_PRODUCT_IMAGE_BASE_URL;
+const GiftSelectionForm = ({ variants, onSelect, productName, variantsData }) => {
   const [selectedColor, setSelectedColor] = useState(null);
   const [selectedSize, setSelectedSize] = useState(null);
   const [filteredSizes, setFilteredSizes] = useState([]);
-  console.log("Ảnh",productImage)
+  const [productImage, setProductImage] = useState(null);
+
   const availableColors = Array.isArray(variants)
     ? [...new Set(variants.map((v) => v.color).filter(Boolean))]
     : [];
 
   useEffect(() => {
-    if (selectedColor && variants && variants.length > 0) {
+    if (availableColors.length > 0 && !selectedColor && variants && variants.length > 0) {
+      setSelectedColor(availableColors[0]);
+    }
+  }, [availableColors, selectedColor, variants]);
+
+  useEffect(() => {
+    if (selectedColor && variantsData && variantsData.length > 0) {
+      const firstVariant = variantsData.find(v => v.color === selectedColor);
+      setProductImage(firstVariant?.image ? `${process.env.REACT_APP_CLOUDINARY_PRODUCT_IMAGE_BASE_URL}${firstVariant.image}` : null);
+
       const sizesForColor = variants
         .filter((variant) => variant.color === selectedColor && variant.stockQuantity > 0)
         .map((variant) => variant.size);
@@ -26,17 +35,13 @@ const GiftSelectionForm = ({ variants, onSelect, productName, productImage }) =>
     } else {
       setFilteredSizes([]);
       setSelectedSize(null);
+      setProductImage(null);
     }
-  }, [selectedColor, variants, selectedSize]);
-
-  useEffect(() => {
-    if (availableColors.length > 0 && !selectedColor && variants && variants.length > 0) {
-      setSelectedColor(availableColors[0]);
-    }
-  }, [availableColors, selectedColor, variants]);
+  }, [selectedColor, variants, selectedSize, variantsData]);
 
   const handleColorSelect = (color) => {
     setSelectedColor(color);
+    setSelectedSize(null)
   };
 
   const handleSizeSelect = (size) => {
@@ -57,12 +62,11 @@ const GiftSelectionForm = ({ variants, onSelect, productName, productImage }) =>
         <Col>
           <img
             src={productImage}
-            sizes="100"
             alt={productName}
             style={{
               width: 100,
               height: 100,
-              objectFit: "cover",
+              objectFit: "contain",
               borderRadius: 8,
               border: "1px solid #eee",
             }}
@@ -108,7 +112,6 @@ const GiftSelectionForm = ({ variants, onSelect, productName, productImage }) =>
         ))}
       </Row>
 
-      {/* Size */}
       <h4>Size</h4>
       {selectedColor ? (
         filteredSizes.length > 0 ? (
@@ -143,7 +146,6 @@ const GiftSelectionForm = ({ variants, onSelect, productName, productImage }) =>
         <p>Please select a color first.</p>
       )}
 
-      {/* Nút chọn */}
       <Button
         type="primary"
         size="middle"

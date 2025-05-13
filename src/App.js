@@ -4,6 +4,7 @@ import AllRoute from "./components/AllRoutes";
 import { Provider } from "react-redux";
 import store from "./redux/store";
 import { fetchUser } from "./redux/accountSlice";
+import LoadingSpinner from "./components/LoadingSpinner/LoadingSpinner";
 
 function App() {
   return (
@@ -15,17 +16,17 @@ function App() {
 
 const InitApp = () => {
   const dispatch = useDispatch();
+  const isAppLoading = useSelector((state) => state.account.isAppLoading);
 
   useEffect(() => {
     dispatch(fetchUser());
   }, [dispatch]);
 
+  if (isAppLoading) {
+    return <LoadingSpinner />;
+  }
 
-  return (
-    <>
-      <AllRoute />
-    </>
-  );
+  return <AllRoute />;
 };
 
 export default App;

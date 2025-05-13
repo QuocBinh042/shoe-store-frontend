@@ -106,7 +106,7 @@ function OrderDetailDrawer({ isOpen, onClose, order }) {
               <Image
                 src={detail.image}
                 width={120}
-                style={{ borderRadius: "8px", boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)" }}
+                style={{ borderRadius: "8px",height:"6rem",objectFit:"contain", boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)" }}
               />
               <div style={{ marginLeft: 20, flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>

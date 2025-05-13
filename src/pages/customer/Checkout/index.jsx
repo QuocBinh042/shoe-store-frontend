@@ -7,7 +7,7 @@ import AddressAddForm from "../Account/AddressAddForm";
 import GiftSelectionForm from "./GiftSelectionForm";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchProductDetailById, fetchProductDetailByProductId } from "../../../services/productDetailService";
-import { addOrder } from "../../../services/orderService";
+import { addOrder,addOrderStatusHistory } from "../../../services/orderService";
 import { addOrderDetails } from "../../../services/orderDetailService";
 import logoVNPAY from '../../../assets/images/logos/vnpay_logo.png';
 import { addPayment, getVnPayUrl } from "../../../services/paymentService";
@@ -21,7 +21,6 @@ const Checkout = () => {
   const selectedItems = location.state?.selectedItems || [];
   const navigate = useNavigate();
   const user = useSelector((state) => state.account.user);
-
   const [modals, setModals] = useState({
     orderSuccess: false,
     voucher: false,
@@ -41,7 +40,6 @@ const Checkout = () => {
   const [giftSelections, setGiftSelections] = useState({});
   const [giftProductVariants, setGiftProductVariants] = useState([]);
   const [currentGiftItem, setCurrentGiftItem] = useState(null);
-  const [imageGiftProduct, setImageGiftProduct] = useState(null);
 
   const formatCurrency = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 
@@ -67,7 +65,30 @@ const Checkout = () => {
       subtotal,
     };
   }, [productDetails, selectedVoucher, shippingMethod]);
-
+  useEffect(() => {
+    const recentOrder = localStorage.getItem('recentOrder');
+    if (recentOrder) {
+      const { orderId, orderCode } = JSON.parse(recentOrder);
+      Modal.info({
+        title: "Order Already Created",
+        content: (
+          <div>
+            <p>Your order #{orderCode} has been created successfully.</p>
+            <p>Please proceed to payment or view your order details.</p>
+          </div>
+        ),
+        okText: "View Order",
+        onOk: () => {
+          navigate(`/account`)
+          localStorage.removeItem('recentOrder');
+        },
+        onCancel: () => {
+          navigate("/");
+          localStorage.removeItem('recentOrder');
+        },
+      });
+    }
+  }, [navigate]);
   useEffect(() => {
     if (user?.userID) {
       fetchAddresses(user.userID);
@@ -123,7 +144,6 @@ const Checkout = () => {
     if (giftProductId) {
       fetchProductDetailByProductId(giftProductId)
         .then(result => {
-          setImageGiftProduct(`${CLOUDINARY_BASE_URL}${result.imageURL?.[0]}`);
           setGiftProductVariants(result);
           setModals(prev => ({ ...prev, giftSelection: true }));
         })
@@ -144,7 +164,7 @@ const Checkout = () => {
         color,
         size,
         name: giftProductVariants?.productName || "Gift Item",
-        image: imageGiftProduct,
+        image: `${CLOUDINARY_BASE_URL}${giftVariant?.image}`,
         giftProductDetailID: giftVariant?.productDetailID,
       },
     }));
@@ -158,7 +178,7 @@ const Checkout = () => {
         type: "BUYX",
         message: "Free 1 item",
       };
-    } else if (promotion?.type === "GIFT" ) {
+    } else if (promotion?.type === "GIFT") {
       return {
         type: "GIFT",
         message: `Free gift item`,
@@ -198,7 +218,7 @@ const Checkout = () => {
       shippingAddress: `${selectedAddress.street}, ${selectedAddress.ward}, ${selectedAddress.district}, ${selectedAddress.city}`,
       user: { userID: user.userID },
       code: orderCode,
-      paymentMethod: paymentMethod === "VNPay" ? "VNPAY" : "CASH",
+      paymentMethod: paymentMethod === "VNPAY" ? "VNPAY" : "CASH",
       ...(selectedVoucher && { voucher: { voucherID: selectedVoucher.voucherID } }),
       voucherDiscount: discount,
     };
@@ -207,7 +227,11 @@ const Checkout = () => {
       const response = await addOrder(order);
       if (response && response.data.orderID) {
         const orderID = response.data.orderID;
-
+        localStorage.setItem('recentOrder', JSON.stringify({
+          orderId: orderID,
+          orderCode: orderCode,
+          createdAt: new Date().toISOString(),
+        }));
         await Promise.all(
           productDetails.map(async (product) => {
             const giftSelection = giftSelections[product.key];
@@ -227,20 +251,31 @@ const Checkout = () => {
             await addOrderDetails(orderDetail);
           })
         );
-
+      
         const payment = { paymentDate: new Date().toISOString(), status: "PENDING", order: { orderID } };
         await addPayment(payment);
 
         let vnPayUrl = null;
-        if (paymentMethod === "VNPay") {
+        if (paymentMethod === "VNPAY") {
           const vnPayResponse = await getVnPayUrl(totalCost, orderCode);
           vnPayUrl = vnPayResponse.paymentUrl;
         }
+        const orderStatusHistory={
+          order:{orderID:orderID},
+          status:"PENDING",
+          changeAt:new Date().toISOString().split("T")[0],
+          trackingNumber:null,
+          cancelReason:null,
+          changedBy:{userID:user.userID}
+        }
+        await addOrderStatusHistory(orderStatusHistory)
+
 
         setModalData({
           transactionDate: new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }),
-          paymentMethod: paymentMethod === "VNPay" ? "PENDING" : "CASH",
+          paymentMethod: paymentMethod === "VNPAY" ? "VNPAY" : "CASH",
           shippingMethod: shippingMethod === "Express" ? "Express delivery (1-3 days)" : "Normal delivery (3-5 days)",
+          
           products: productDetails,
           ...(Object.keys(giftSelections).length > 0 && {
             gifts: Object.values(giftSelections).map(gift => ({
@@ -294,7 +329,7 @@ const Checkout = () => {
     return (
       <div key={product.detail?.productDetailID || `product-${index}`} className="product-item-container">
         <div className="product-item">
-          <Image src={product.image} className="product-image" width={150} preview={false} />
+          <Image src={CLOUDINARY_BASE_URL + product.image} className="product-image" width={150} preview={false} />
           <div className="product-details">
             <p className="product-name">{product.name}</p>
             <p className="product-variant">{`${product.detail.color} / ${product.detail.size.replace("SIZE_", "")}`}</p>
@@ -400,7 +435,7 @@ const Checkout = () => {
       content: (
         <div className="step-content">
           <Radio.Group value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)} className="payment-options">
-            <Radio value="VNPay" className="payment-option">
+            <Radio value="VNPAY" className="payment-option">
               <img src={logoVNPAY} className="payment-logo" alt="VNPay" /> VNPay
             </Radio>
             <Radio value="Cod" className="payment-option">Cash on Delivery</Radio>
@@ -506,7 +541,7 @@ const Checkout = () => {
                   {address.default && <Tag color="blue">Default</Tag>}
                 </div>
                 <div>{address.phone}</div>
-                <div>{`${address.street}, ${address.ward}, ${address.district}, ${address.city}`}</div>
+                <div>{`${address.street}, ${address.ward}, ${address.district}, ${selectedAddress.city}`}</div>
               </Radio>
             </Card>
           ))}
@@ -542,7 +577,7 @@ const Checkout = () => {
           variants={giftProductVariants.productDetails}
           onSelect={(color, size) => handleGiftSelection(currentGiftItem.promotion.giftProductID, color, size)}
           productName={giftProductVariants.productName}
-          productImage={imageGiftProduct}
+          variantsData={giftProductVariants.productDetails}
         />
       </Modal>
     </div>

@@ -21,14 +21,15 @@ const Cart = () => {
 
   useEffect(() => {
     if (user?.userID) {
-      loadCartItemByUser(user.userID);
+      loadCartItemByUser();
     } else {
       setCartItems([]);
     }
   }, [user, location.pathname]);
 
-  const loadCartItemByUser = async (id, page = 1, size = 3) => {
-    const data = await fetchCartItemByCartId(id, page, size);
+  const loadCartItemByUser = async (page = 1, size = 3) => {
+    const data = await fetchCartItemByCartId(page, size);
+    console.log(data)
     if (data && Array.isArray(data.items)) {
       const enrichedCartItems = data.items.map((cartItem) => {
         let promotionText = '';
@@ -51,7 +52,6 @@ const Cart = () => {
               promotionText = promotion.description || 'No Promotion';
           }
         }
-        const image = `${CLOUDINARY_BASE_URL}${cartItem.productDTO.imageURL[0]}`;
         return {
           key: cartItem.productDetailDTO.productDetailID,
           name: cartItem.productDTO.productName,
@@ -59,7 +59,7 @@ const Cart = () => {
           colors: cartItem.productDetailDTO.color,
           quantity: cartItem.cartItemDTO.quantity,
           price: cartItem.productDTO.price,
-          image: image,
+          image: cartItem.productDetailDTO.image,
           stockQuantity: cartItem.productDetailDTO.stockQuantity,
           isChecked: false,
           discountPrice: cartItem.discountPrice,
@@ -136,11 +136,10 @@ const Cart = () => {
   };
 
   const handleRemove = (id) => {
-    const cartId = user.userID;
     deleteCartItem(id)
       .then((response) => {
         if (response.statusCode === 200) {
-          loadCartItemByUser(cartId, currentPage, pageSize);
+          loadCartItemByUser(currentPage, pageSize);
           Modal.success({ content: 'Item removed successfully!' });
         } else {
           Modal.error({ content: 'Unexpected error occurred while removing item.' });
@@ -206,13 +205,18 @@ const Cart = () => {
                         </div>
                         <div className="cart-item-image">
                           <img
-                            src={product.image}
-                            alt={product.name}
-                            onError={(e) => (e.target.src = 'https://via.placeholder.com/150?text=Image+Not+Found')}
+                            src={CLOUDINARY_BASE_URL + product.image}
                           />
                         </div>
                         <div className="cart-item-details">
-                          <h3>{product.name}</h3>
+                          <h3
+                            className="product-name-link"
+                            style={{ cursor: 'pointer'}}
+                            onClick={() => navigate(`/product-detail/${product.productID}`)}
+                          >
+                            {product.name}
+                          </h3>
+
                           <div className="cart-item-info">
                             <div className="cart-item-color">
                               <span
@@ -288,7 +292,7 @@ const Cart = () => {
                     disabled={currentPage === 1}
                     onClick={() => {
                       setCurrentPage(currentPage - 1);
-                      loadCartItemByUser(user.userID, currentPage - 1, pageSize);
+                      loadCartItemByUser(currentPage - 1, pageSize);
                     }}
                   >
                     Previous
@@ -298,7 +302,7 @@ const Cart = () => {
                     disabled={currentPage === Math.ceil(totalItems / pageSize)}
                     onClick={() => {
                       setCurrentPage(currentPage + 1);
-                      loadCartItemByUser(user.userID, currentPage + 1, pageSize);
+                      loadCartItemByUser(currentPage + 1, pageSize);
                     }}
                   >
                     Next

@@ -1,0 +1,69 @@
+.dashboard-container {
+    padding: 24px;
+
+    .user-card {
+        text-align: center;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        padding: 24px;
+        margin-bottom: 24px;
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+
+            margin: 16px 0;
+
+            b {
+                color: #1890ff;
+            }
+        }
+
+        .button-group {
+            margin-top: 16px;
+
+            button {
+                margin: 0 8px;
+            }
+        }
+    }
+
+    .stats-row {
+        margin-bottom: 24px;
+
+        .stat-card {
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+    }
+
+    .chart-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        margin-bottom: 24px;
+    }
+
+    .table-card {
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.ant-modal-content {
+    border-radius: 12px;
+    .ant-modal-body {
+        padding: 24px;
+    }
+}
+
+.ant-btn-primary {
+    background: #1890ff;
+    border-color: #1890ff;
+
+    &:hover {
+        background: #40a9ff;
+        border-color: #40a9ff;
+    }
+}

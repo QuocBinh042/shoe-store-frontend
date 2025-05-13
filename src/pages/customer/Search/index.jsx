@@ -50,7 +50,6 @@ const Search = () => {
     setLoading(true);
     try {
       const { products, total } = await fetchAllProducts(page);
-      console.log(products)
       setProducts(products || []);
       setTotalProducts(total || 0);
     } catch (error) {

@@ -117,21 +117,21 @@ const Review = ({ productID }) => {
   return (
     <div className="review-tab">
       <div style={{ display: "flex", gap: "20px", padding: '1rem', borderRadius: '0.5rem', marginTop: 20, background: 'white' }}>
-      {totalReviews > 0 && (
-        <div>
-          <ReviewSummary averageRating={averageRating} totalReviews={totalReviews} ratingsCount={ratingsCount} />
-        </div>
-      )}
-
-      <div style={{ flex: 2, padding: '1rem', borderRadius: '0.5rem', marginTop: 20, background: 'white' }}>
-        <ReviewList reviews={reviews.slice(0, 2)} />
-        {totalReviews > 2 && (
-          <Button type="link" onClick={() => setDrawerVisible(true)}>
-            See all reviews
-          </Button>
+        {totalReviews > 0 && (
+          <div>
+            <ReviewSummary averageRating={averageRating} totalReviews={totalReviews} ratingsCount={ratingsCount} />
+          </div>
         )}
+
+        <div style={{ flex: 2, padding: '1rem', borderRadius: '0.5rem', marginTop: 20, background: 'white' }}>
+          <ReviewList reviews={reviews.slice(0, 2)} />
+          {totalReviews > 2 && (
+            <Button type="link" onClick={() => setDrawerVisible(true)}>
+              See all reviews
+            </Button>
+          )}
+        </div>
       </div>
-</div>
       <Drawer
         title="All reviews"
         placement="right"
