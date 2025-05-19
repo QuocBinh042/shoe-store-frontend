@@ -31,7 +31,9 @@ const OrderDetail = () => {
     const fetchData = async () => {
       try {
         const response = await getOrderDetailByOrder(orderID);
+        console.log(response);
         const orderData = await getOrderById(orderID);
+        console.log(orderData);
         setOrder(orderData.data);
         if (response.statusCode === 200) {
           setOrderDetails(response.data);
@@ -79,9 +81,9 @@ const OrderDetail = () => {
     status: [{ label: order.status, color: getStatusColor(order.status) }],
     items: orderDetails.map((item, idx) => ({
       key: idx.toString(),
-      productImage: item.productDetail?.image || 'https://dummyimage.com/100x100/cccccc/000000&text=No+Image',
-      color: item.productDetail?.color || '',
-      size: item.productDetail?.size || '',
+      productImage: item.productDetails?.image || 'https://dummyimage.com/100x100/cccccc/000000&text=No+Image',
+      color: item.productDetails?.color || '',
+      size: item.productDetails?.size || '',
       price: currencyFormat(item.price),
       qty: item.quantity,
       total: currencyFormat((item.price || 0) * (item.quantity || 0)),
@@ -89,7 +91,7 @@ const OrderDetail = () => {
     totals: {
       subtotal: currencyFormat(order.total),
       feeShip: currencyFormat(order.feeShip),
-      discount: currencyFormat(order.discount),
+      discount: currencyFormat(order.voucherDiscount),
       total: currencyFormat(order.total),
     },
     customer: {

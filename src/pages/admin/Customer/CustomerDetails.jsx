@@ -23,6 +23,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import EditDetail from './EditDetail';
 import { fetchOrderByUser } from '../../../services/orderService';
 import { updateUserInfo, updateUserStatus } from '../../../services/userService';
+import { STATUS_OPTION, getStatusColor } from '../../../constants/orderConstant';
+import { currencyFormat } from '../../../utils/helper';
 
 const { Title, Text } = Typography;
 
@@ -73,16 +75,18 @@ const CustomerDetail = () => {
     const fetchOrders = async () => {
       try {
         const ordersResponse = await fetchOrderByUser(customerId);
-        
         if (ordersResponse) {
-          const formattedOrders = ordersResponse.map((order) => ({
-            key: order.order.orderID,
-            order: `#${order.order.orderID}`,
-            date: order.order.orderDate,
-            status: order.order.status,
-            statusColor: order.order.status === 'DELIVERED' ? 'blue' : 'red',
-            spent: order.order.total,
-          }));
+          const formattedOrders = ordersResponse.map((order) => {
+            const status = order.orderResponse.status;
+            return {
+              key: order.orderResponse.orderID,
+              order: `#${order.orderResponse.code}`,
+              date: order.orderResponse.orderDate,
+              status: status,
+              statusColor: getStatusColor(status),
+              spent: currencyFormat(order.orderResponse.total),
+            };
+          });
           console.log(formattedOrders)
           setOrdersData(formattedOrders);
         }
@@ -171,12 +175,12 @@ const CustomerDetail = () => {
             </Title>
           </Col>
           <Col>
-            {customerData.status === 'Active' ? (
-              <Button type="primary" danger onClick={() => handleStatusChange('Inactive')}>
+            {customerData.status === 'ACTIVE' ? (
+              <Button type="primary" danger onClick={() => handleStatusChange('INACTIVE')}>
                 Deactivate Customer
               </Button>
             ) : (
-              <Button type="primary" onClick={() => handleStatusChange('Active')}>
+              <Button type="primary" onClick={() => handleStatusChange('ACTIVE')}>  
                 Activate Customer
               </Button>
             )}
@@ -252,7 +256,7 @@ const CustomerDetail = () => {
                 <p><strong>Email:</strong> {customerData.email}</p>
                 <p>
                   <strong>Status:</strong>{' '}
-                  <Text style={{ color: customerData.status === 'Active' ? '#52c41a' : '#ff4d4f' }}>
+                  <Text style={{ color: customerData.status === 'ACTIVE' ? '#52c41a' : '#ff4d4f' }}>
                     {customerData.status}
                   </Text>
                 </p>

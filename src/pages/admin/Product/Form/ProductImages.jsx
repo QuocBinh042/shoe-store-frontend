@@ -81,7 +81,7 @@ const ProductImages = ({
         />
       ) : (
         <CloudinaryImage
-          publicId={imageObj.url}
+          publicId={imageObj.url.includes('project_ShoeStore/ImageProduct/') ? imageObj.url : `project_ShoeStore/ImageProduct/${imageObj.url}`}
           alt={`Product ${index + 1}`}
           options={{ width: 120, height: 120, crop: 'fill' }}
           style={{ borderRadius: 8, width: '100%', height: '100%', objectFit: 'cover' }}
@@ -154,7 +154,9 @@ const ProductImages = ({
             />
           ) : (
             <CloudinaryImage
-              publicId={images[selectedImageIndex].url}
+              publicId={images[selectedImageIndex].url.includes('project_ShoeStore/ImageProduct/') ? 
+                images[selectedImageIndex].url : 
+                `project_ShoeStore/ImageProduct/${images[selectedImageIndex].url}`}
               alt={`Full view ${selectedImageIndex + 1}`}
               options={{ width: 600, crop: 'limit' }}
               style={{ width: '100%', maxHeight: 500, objectFit: 'contain' }}

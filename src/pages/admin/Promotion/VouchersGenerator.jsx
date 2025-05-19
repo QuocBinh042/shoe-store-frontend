@@ -49,13 +49,13 @@ const formatDateTime = () => {
   return `${year}${month}${day}_${hours}${minutes}${seconds}`;
 };
 
-const CouponGenerator = () => {
+const VoucherGenerator = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
-  const [coupons, setCoupons] = useState([]);
+  const [coupons, setVouchers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [previewVisible, setPreviewVisible] = useState(false);
-  const [previewCoupons, setPreviewCoupons] = useState([]);
+  const [previewVouchers, setPreviewVouchers] = useState([]);
 
   // Generate a random coupon code
   const generateRandomCode = (prefix, length) => {
@@ -68,14 +68,14 @@ const CouponGenerator = () => {
   };
 
   // Generate multiple coupon codes
-  const generateCoupons = (values) => {
+  const generateVouchers = (values) => {
     setLoading(true);
     const { prefix, codeLength, quantity, discountType, discountValue, expiryDate, minOrderValue, maxUses, description, productRestriction } = values;
     
-    const newCoupons = [];
+    const newVouchers = [];
     for (let i = 0; i < quantity; i++) {
       const code = generateRandomCode(prefix, codeLength);
-      newCoupons.push({
+      newVouchers.push({
         id: `temp-${Date.now()}-${i}`,
         code,
         discountType,
@@ -91,23 +91,23 @@ const CouponGenerator = () => {
       });
     }
     
-    setPreviewCoupons(newCoupons);
+    setPreviewVouchers(newVouchers);
     setPreviewVisible(true);
     setLoading(false);
   };
 
   // Save coupons to database
-  const saveCoupons = () => {
+  const saveVouchers = () => {
     // In a real app, you would send the coupons to your API
-    console.log('Saving coupons:', previewCoupons);
-    setCoupons([...coupons, ...previewCoupons]);
+    console.log('Saving coupons:', previewVouchers);
+    setVouchers([...coupons, ...previewVouchers]);
     setPreviewVisible(false);
-    message.success(`${previewCoupons.length} coupons generated successfully!`);
+    message.success(`${previewVouchers.length} coupons generated successfully!`);
     form.resetFields();
   };
 
   // Export coupons as CSV
-  const exportCouponsAsCSV = () => {
+  const exportVouchersAsCSV = () => {
     if (coupons.length === 0) {
       message.warning('No coupons to export');
       return;
@@ -139,7 +139,7 @@ const CouponGenerator = () => {
   };
 
   // Handle deleting a coupon
-  const handleDeleteCoupon = (id) => {
+  const handleDeleteVoucher = (id) => {
     confirm({
       title: 'Are you sure you want to delete this coupon?',
       icon: <DeleteOutlined />,
@@ -148,8 +148,8 @@ const CouponGenerator = () => {
       okType: 'danger',
       cancelText: 'Cancel',
       onOk() {
-        setCoupons(coupons.filter(coupon => coupon.id !== id));
-        message.success('Coupon deleted successfully');
+        setVouchers(coupons.filter(coupon => coupon.id !== id));
+        message.success('Voucher deleted successfully');
       },
     });
   };
@@ -236,7 +236,7 @@ const CouponGenerator = () => {
             type="text" 
             danger 
             icon={<DeleteOutlined />} 
-            onClick={() => handleDeleteCoupon(record.id)}
+            onClick={() => handleDeleteVoucher(record.id)}
             tooltip="Delete coupon"
           />
         </Space>
@@ -256,7 +256,7 @@ const CouponGenerator = () => {
             >
               Back to Promotions
             </Button>
-            <Title level={4}>Coupon Generator</Title>
+            <Title level={4}>Voucher Generator</Title>
           </Space>
         }
         className="coupon-generator-card"
@@ -267,7 +267,7 @@ const CouponGenerator = () => {
             <Form
               form={form}
               layout="vertical"
-              onFinish={generateCoupons}
+              onFinish={generateVouchers}
               requiredMark={false}
               initialValues={{
                 prefix: 'SHOE',
@@ -279,7 +279,7 @@ const CouponGenerator = () => {
                 productRestriction: 'all'
               }}
             >
-              <Title level={5}>Generate New Coupons</Title>
+              <Title level={5}>Generate New Vouchers</Title>
               
               <Row gutter={16}>
                 <Col span={12}>
@@ -304,7 +304,7 @@ const CouponGenerator = () => {
               
               <Form.Item
                 name="quantity"
-                label="Number of Coupons"
+                label="Number of Vouchers"
                 rules={[{ required: true, message: 'Please input the number of coupons to generate' }]}
               >
                 <InputNumber min={1} max={1000} style={{ width: '100%' }} />
@@ -366,7 +366,7 @@ const CouponGenerator = () => {
                 <Col span={12}>
                   <Form.Item
                     name="maxUses"
-                    label="Max Uses Per Coupon"
+                    label="Max Uses Per Voucher"
                     tooltip="How many times each coupon can be used"
                   >
                     <InputNumber min={1} style={{ width: '100%' }} />
@@ -395,7 +395,7 @@ const CouponGenerator = () => {
               
               <Form.Item>
                 <Button type="primary" htmlType="submit" loading={loading} icon={<PlusOutlined />}>
-                  Generate Coupons
+                  Generate Vouchers
                 </Button>
               </Form.Item>
             </Form>
@@ -403,11 +403,11 @@ const CouponGenerator = () => {
           
           <Col xs={24} lg={14}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <Title level={5}>Generated Coupons</Title>
+              <Title level={5}>Generated Vouchers</Title>
               <Space>
                 <Button 
                   icon={<DownloadOutlined />} 
-                  onClick={exportCouponsAsCSV}
+                  onClick={exportVouchersAsCSV}
                   disabled={coupons.length === 0}
                 >
                   Export as CSV
@@ -429,16 +429,16 @@ const CouponGenerator = () => {
       
       {/* Preview Modal */}
       <Modal
-        title="Coupon Preview"
+        title="Voucher Preview"
         open={previewVisible}
-        onOk={saveCoupons}
+        onOk={saveVouchers}
         onCancel={() => setPreviewVisible(false)}
         width={800}
-        okText="Save Coupons"
+        okText="Save Vouchers"
         cancelText="Cancel"
       >
         <Alert
-          message="Preview Generated Coupons"
+          message="Preview Generated Vouchers"
           description="Review the generated coupons before saving them to the database."
           type="info"
           showIcon
@@ -446,7 +446,7 @@ const CouponGenerator = () => {
         />
         <Table
           columns={columns.filter(col => col.key !== 'actions')}
-          dataSource={previewCoupons}
+          dataSource={previewVouchers}
           rowKey="id"
           pagination={false}
           scroll={{ y: 300 }}
@@ -456,4 +456,4 @@ const CouponGenerator = () => {
   );
 };
 
-export default CouponGenerator; 
+export default VoucherGenerator; 

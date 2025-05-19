@@ -4,7 +4,6 @@ import { STATUS_PRODUCT_OPTIONS } from '../../../../constants/productConstant';
 import CloudinaryImage from '../../../../utils/cloudinaryImage';
 
 const Variant = ({ variants = [], onEditVariant, onAddVariant, error }) => {
-  console.log('Variants:', variants);
   const columns = [
     {
       title: 'Image',
@@ -14,7 +13,7 @@ const Variant = ({ variants = [], onEditVariant, onAddVariant, error }) => {
       render: (image) =>
         image ? (
           <CloudinaryImage
-            publicId={image}
+            publicId={image.includes('project_ShoeStore/ImageProduct/') ? image : `project_ShoeStore/ImageProduct/${image}`}
             alt="Variant"
             options={{ width: 50, height: 50, crop: 'fill' }}
             style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: '8px' }}

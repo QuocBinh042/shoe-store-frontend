@@ -18,7 +18,7 @@ const EditDetail = ({ open, onCancel, customer, handleSave, mode }) => {
       console.log('Form values:', form.getFieldsValue());
     } else if (mode === 'add') {
       form.setFieldsValue({
-        status: 'Active',
+        status: 'ACTIVE',
         roles: ['CUSTOMER'],
       });
     } else {
@@ -88,8 +88,8 @@ const EditDetail = ({ open, onCancel, customer, handleSave, mode }) => {
           rules={[{ required: true, message: 'Status cannot be blank' }]}
         >
           <Select>
-            <Option value="Active">Active</Option>
-            <Option value="Inactive">Inactive</Option>
+            <Option value="ACTIVE">Active</Option>
+            <Option value="INACTIVE">Inactive</Option>
           </Select>
         </Form.Item>
 

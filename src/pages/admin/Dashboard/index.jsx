@@ -85,11 +85,11 @@ const Dashboard = () => {
           //   label: 'Marketing',
           //   children: <Marketing mockMarketingData={mockMarketingData} />
           // },
-          {
-            key: '5',
-            label: 'Shipping & Inventory',
-            children: <ShippingAndInventory />
-          }
+          // {
+          //   key: '5',
+          //   label: 'Shipping & Inventory',
+          //   children: <ShippingAndInventory />
+          // }
         ]}
       />
     </div>

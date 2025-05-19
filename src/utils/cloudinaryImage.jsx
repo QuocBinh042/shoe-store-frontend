@@ -4,6 +4,7 @@ import { buildCloudinaryUrl } from './helper';
 const CloudinaryImage = ({ publicId, alt, options = {}, style = {}, className = '' }) => {
   const imageUrl = buildCloudinaryUrl(publicId, options);
   return (
+    
     <img
       src={imageUrl}
       alt={alt}
