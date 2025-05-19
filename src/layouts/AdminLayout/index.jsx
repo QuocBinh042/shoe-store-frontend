@@ -108,7 +108,7 @@ const AdminLayout = () => {
             />
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 'bold' }}>{user?.name || 'Admin'}</div>
-              <div style={{ fontSize: '12px', color: '#666' }}>ID: {user?.id}</div>
+              <div style={{ fontSize: '12px', color: '#666' }}>ID: {user?.userID}</div>
             </div>
           </div>
         </Dropdown>

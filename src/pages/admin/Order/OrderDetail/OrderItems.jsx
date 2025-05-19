@@ -12,8 +12,9 @@ const OrderItems = ({ items, subtotal, discount, feeShip, total, onEditItem }) =
       dataIndex: 'productImage',
       key: 'productImage',
       render: (_, record) => (
+        console.log(record.productImage),
         <CloudinaryImage
-          publicId={record.productImage}
+          publicId={`project_ShoeStore/ImageProduct/${record.productImage}`}
           alt="product"
           options={{ width: 100, height: 60, crop: 'fill' }}
           style={{

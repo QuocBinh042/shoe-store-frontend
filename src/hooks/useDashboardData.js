@@ -138,6 +138,7 @@ export function useStockAlerts(initialThreshold = 10, initialPage = 1) {
     }
     try {
       const res = await getStockAlerts(threshold, page);
+      console.log("res", res);
       cacheRef.current[key] = res;
       setData(res);
     } catch (err) {

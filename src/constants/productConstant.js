@@ -23,11 +23,11 @@ export const SIZE_OPTIONS = [
 ];
 
 export const COLOR_OPTIONS = [
-  { value: 'Red', label: 'Red', color: 'red' },
-  { value: 'Blue', label: 'Blue', color: 'blue' },
-  { value: 'Purple', label: 'Purple', color: 'purple' },
-  { value: 'Green', label: 'Green', color: 'green' },
-  { value: 'Black', label: 'Black', color: 'black' },
-  { value: 'White', label: 'White', color: 'white' },
-  { value: 'Pink', label: 'Pink', color: 'pink' },
+  { value: 'RED', label: 'Red', color: 'red' },
+  { value: 'BLUE', label: 'Blue', color: 'blue' },
+  { value: 'PURPLE', label: 'Purple', color: 'purple' },
+  { value: 'GREEN', label: 'Green', color: 'green' },
+  { value: 'BLACK', label: 'Black', color: 'black' },
+  { value: 'WHITE', label: 'White', color: 'white' },
+  { value: 'PINK', label: 'Pink', color: 'pink' },
 ];

@@ -1,10 +1,13 @@
 import { apiClient } from './apiService';
 
-export const uploadImage = async (file, productId) => {
+export const uploadImage = async (file, productId, publicId) => {
   const formData = new FormData();
   formData.append("file", file);
   if (productId) {
     formData.append("productId", productId);
+  }
+  if (publicId) {
+    formData.append("publicId", publicId);
   }
   
   try {

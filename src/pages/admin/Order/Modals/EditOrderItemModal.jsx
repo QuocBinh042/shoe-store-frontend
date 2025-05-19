@@ -1,36 +1,59 @@
-import React from 'react';
-import { Modal, Form, Input, Button, Select, InputNumber } from 'antd';
+import React, { useEffect } from 'react';
+import { Modal, Form, Input, Button, Select, InputNumber, message } from 'antd';
+import { updateOrderDetail } from '../../../../services/orderDetailService';
 
-const EditOrderItemModal = ({ 
-  open, 
-  onCancel, 
-  onSubmit, 
-  initialValues, 
-  colorOptions, 
+const EditOrderItemModal = ({
+  open,
+  onCancel,
+  initialValues,
+  colorOptions,
   sizeOptions,
-  disabled 
+  disabled,
+  orderDetailId,    
+  reloadOrderDetail,  
 }) => {
   const [form] = Form.useForm();
 
-  const handleSubmit = () => {
-    form.validateFields().then(values => {
-      onSubmit(values);
+  useEffect(() => {
+    form.setFieldsValue(initialValues);
+  }, [initialValues, form]);
+
+  const handleSubmit = async () => {
+    try {
+      const values = await form.validateFields();
+      console.log("values", values)
+      const updatedItem = await updateOrderDetail(orderDetailId, {
+        color: values.color,
+        size: values.size,
+        quantity: values.qty,
+      });
+      console.log("updatedItem", updatedItem)
+      message.success('Order item updated successfully');
       form.resetFields();
-    });
+      onCancel();
+      if (typeof reloadOrderDetail === 'function') {
+        reloadOrderDetail(); 
+      }
+    } catch (error) {
+      message.error(error?.response?.data?.message || 'Failed to update order item');
+    }
   };
 
   return (
     <Modal
       title="Edit Order Item"
       open={open}
-      onCancel={onCancel}
+      onCancel={() => {
+        form.resetFields();
+        onCancel();
+      }}
       footer={[
         <Button key="cancel" onClick={onCancel}>
           Cancel
         </Button>,
-        <Button 
-          key="submit" 
-          type="primary" 
+        <Button
+          key="submit"
+          type="primary"
           onClick={handleSubmit}
           disabled={disabled}
         >

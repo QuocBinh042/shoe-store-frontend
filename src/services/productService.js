@@ -11,6 +11,7 @@ export const fetchProductById = async (id) => {
 };
 
 export const createProduct = async (product) => {
+  console.log("product", product);  
   const data = await postData('products', product);
   return data;
 };
@@ -24,6 +25,7 @@ export const getRelatedProduct = async (id) => {
 };
 
 export const updateProduct = async (id, product) => {
+  console.log("product", product);
   const data = await putData(`products/${id}`, product);
   return data;
 }

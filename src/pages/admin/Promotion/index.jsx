@@ -29,11 +29,8 @@ import {
   GiftOutlined,
   DollarOutlined,
   PercentageOutlined,
-  TruckOutlined,
   ExclamationCircleOutlined,
   DownOutlined,
-  MailOutlined,
-  LineChartOutlined
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import moment from 'moment';
@@ -61,9 +58,12 @@ const PromotionDashboard = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [promotions, setPromotions] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
-  const pageSize = 12;
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    pageSize: 10,
+    totalElements: 0,
+    totalPages: 0,
+  });
 
   const [activePromotionsCount, setActivePromotionsCount] = useState(0);
   const [upcomingPromotionsCount, setUpcomingPromotionsCount] = useState(0);
@@ -101,18 +101,24 @@ const PromotionDashboard = () => {
     fetchStats();
   }, []);
 
-  const fetchPromotions = async () => {
+  const fetchPromotions = async (page = 1, size = 10) => {
     setLoading(true);
     try {
       const params = {
         ...searchParams,
-        page: currentPage,
-        pageSize: pageSize,
+        page: page,
+        pageSize: size,
       };
       console.log('Fetching with params:', params);
       const data = await searchPromotions(params);
       setPromotions(data.data.items);
-      setTotalItems(data.data.totalElements);
+      setPagination(prev => ({
+        ...prev,
+        currentPage: data.data.currentPage || page,
+        pageSize: data.data.pageSize || size,
+        totalElements: data.data.totalElements,
+        totalPages: Math.ceil(data.data.totalElements / size),
+      }));
     } catch (error) {
       message.error('Failed to search promotions');
       console.error('Error searching promotions:', error);
@@ -123,8 +129,8 @@ const PromotionDashboard = () => {
 
   // Theo dõi các tham số thay đổi để gọi API (trừ name)
   useEffect(() => {
-    fetchPromotions();
-  }, [searchParams.type, searchParams.startDate, searchParams.endDate, searchParams.status, currentPage]);
+    fetchPromotions(pagination.currentPage, pagination.pageSize);
+  }, [searchParams.type, searchParams.startDate, searchParams.endDate, searchParams.status]);
 
   const getTypeInfo = (type) => {
     switch (type?.toLowerCase()) {
@@ -184,7 +190,7 @@ const PromotionDashboard = () => {
         try {
           await deletePromotion(id);
           message.success('Promotion deleted successfully');
-          fetchPromotions(); // Gọi lại API để cập nhật danh sách
+          fetchPromotions(pagination.currentPage, pagination.pageSize);
         } catch (error) {
           message.error('Failed to delete promotion');
           console.error('Error deleting promotion:', error);
@@ -199,7 +205,13 @@ const PromotionDashboard = () => {
       ...prev,
       status: key === 'all' ? null : key.toUpperCase(),
     }));
-    setCurrentPage(1);
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
+  };
+
+  const handleTableChange = (paginationInfo) => {
+    const { current, pageSize } = paginationInfo;
+    setPagination(prev => ({ ...prev, currentPage: current, pageSize }));
+    fetchPromotions(current, pageSize);
   };
 
   const columns = [
@@ -259,15 +271,6 @@ const PromotionDashboard = () => {
         <Space size="middle">
           <Button
             type="text"
-            icon={<EyeOutlined />}
-            onClick={(e) => {
-              e.stopPropagation();
-              navigate(`/admin/promotions/${record.promotionID}`);
-            }}
-            tooltip="View details"
-          />
-          <Button
-            type="text"
             icon={<EditOutlined />}
             onClick={(e) => {
               e.stopPropagation();
@@ -304,7 +307,6 @@ const PromotionDashboard = () => {
           <Col xs={24} sm={12} lg={6} key={index}>
             <Card
               className="stat-card"
-              bordered={false}
               style={{
                 backgroundColor: stat.color,
                 borderLeft: `4px solid ${stat.borderColor}`,
@@ -347,16 +349,10 @@ const PromotionDashboard = () => {
                         onClick: () => navigate('/admin/promotions/create'),
                       },
                       {
-                        key: 'coupons',
+                        key: 'vouchers',
                         icon: <TagOutlined />,
-                        label: 'Generate Coupons',
-                        onClick: () => navigate('/admin/promotions/coupons'),
-                      },
-                      {
-                        key: 'marketing',
-                        icon: <MailOutlined />,
-                        label: 'Marketing Campaigns',
-                        onClick: () => navigate('/admin/promotions/marketing'),
+                        label: 'Generate Vouchers',
+                        onClick: () => navigate('/admin/promotions/vouchers'),
                       },
                     ],
                   }}
@@ -365,13 +361,6 @@ const PromotionDashboard = () => {
                     Actions <DownOutlined />
                   </Button>
                 </Dropdown>
-                <Button
-                  icon={<LineChartOutlined />}
-                  onClick={() => navigate('/admin/promotions/analytics')}
-                  style={{ borderRadius: '6px', fontWeight: 'bold' }}
-                >
-                  Analytics
-                </Button>
               </Space>
             </Col>
           </Row>
@@ -389,8 +378,8 @@ const PromotionDashboard = () => {
                 setSearchParams(prev => ({ ...prev, name: e.target.value }))
               }
               onSearch={() => {
-                setCurrentPage(1);
-                fetchPromotions();
+                setPagination(prev => ({ ...prev, currentPage: 1 }));
+                fetchPromotions(1, pagination.pageSize);
               }}
               allowClear
               style={{ width: '100%' }}
@@ -402,7 +391,7 @@ const PromotionDashboard = () => {
               value={searchParams.type}
               onChange={(value) => {
                 setSearchParams(prev => ({ ...prev, type: value }));
-                setCurrentPage(1);
+                setPagination(prev => ({ ...prev, currentPage: 1 }));
               }}
               style={{ width: '100%' }}
               allowClear
@@ -426,7 +415,7 @@ const PromotionDashboard = () => {
                   startDate: dates ? dates[0].toISOString() : null,
                   endDate: dates ? dates[1].toISOString() : null,
                 }));
-                setCurrentPage(1);
+                setPagination(prev => ({ ...prev, currentPage: 1 }));
               }}
               placeholder={['Start Date', 'End Date']}
             />
@@ -438,11 +427,13 @@ const PromotionDashboard = () => {
           dataSource={promotions}
           rowKey="promotionID"
           loading={loading}
+          onChange={handleTableChange}
           pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: totalItems,
-            onChange: (page) => setCurrentPage(page),
+            current: pagination.currentPage,
+            pageSize: pagination.pageSize,
+            total: pagination.totalElements,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
           }}
           style={{
@@ -451,7 +442,7 @@ const PromotionDashboard = () => {
             overflow: 'hidden',
           }}
           onRow={(record) => ({
-            onClick: () => navigate(`/admin/promotions/${record.promotionID}`),
+            onClick: () => navigate(`/admin/promotions/${record.promotionID}/edit`),
             style: { cursor: 'pointer' },
           })}
         />

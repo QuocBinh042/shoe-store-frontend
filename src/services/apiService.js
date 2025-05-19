@@ -104,6 +104,8 @@ export const postData = async (endpoint, data) => {
     return response.data;
   } catch (error) {
     console.error("API POST Error:", error);
+    console.error("Error Response Data:", error.response?.data);
+    console.error("Error Request:", error.config);
     throw error;
   }
 };
@@ -114,6 +116,8 @@ export const putData = async (endpoint, data) => {
     return response.data;
   } catch (error) {
     console.error("API PUT Error:", error);
+    console.error("Error Response Data:", error.response?.data);
+    console.error("Error Request:", error.config);
     throw error;
   }
 };

@@ -1,4 +1,4 @@
-import { fetchData,postData } from './apiService'
+import { fetchData,postData, putData } from './apiService'
 export const addOrderDetails = async (orderDetail) => {
     // console.log(orderDetail)
     const data = await postData(`order-details/add`, orderDetail);
@@ -17,3 +17,8 @@ export const getOrderDetailByOrder = async (orderId) => {
     const data = await fetchData(`order-details/order/${orderId}/details`);
     return data;
 };
+
+export const updateOrderDetail = async (orderDetailId, data) => {
+    const response = await putData(`order-details/${orderDetailId}`, data);
+    return response.data;
+  };

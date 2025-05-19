@@ -29,13 +29,11 @@ import {
 } from '@ant-design/icons';
 import Variant from './Variant';
 import EditVariantModal from './EditVariantModal';
-import ProductImages from './ProductImages';
 import { getAllBrands } from '../../../../services/brandService';
 import { getAllCategories } from '../../../../services/categoryService';
 import { getAllSuppliers } from '../../../../services/supplierService';
 import { createProduct, fetchProductById, updateProduct } from '../../../../services/productService';
 import { createProductDetail, updateProductDetail } from '../../../../services/productDetailService';
-import { uploadImage } from '../../../../services/uploadService';
 import { getAppliedPromotionsForProduct, getDiscountedPrice } from '../../../../services/promotionService';
 import { useNavigate, useParams } from 'react-router-dom';
 import { currencyFormat } from '../../../../utils/helper';
@@ -87,8 +85,10 @@ const ProductForm = ({ mode }) => {
       (currentStatus !== 'UNAVAILABLE' && currentStatus !== 'DISCONTINUED')
     ) {
       if (calculatedStatus === 'AVAILABLE' || calculatedStatus === 'LIMITED_STOCK') {
-        form.setFieldsValue({ status: calculatedStatus });
-        setDisplayStatus(calculatedStatus);
+        if (!displayStatus) {
+          form.setFieldsValue({ status: calculatedStatus });
+          setDisplayStatus(calculatedStatus);
+        }
       }
     }
   }, [calculatedStatus, form, mode, displayStatus]);
@@ -106,7 +106,7 @@ const ProductForm = ({ mode }) => {
               ...detail,
               image: detail.image || null,
             }));
-            
+
 
             setVariants(variantsWithImages || []);
 
@@ -216,26 +216,12 @@ const ProductForm = ({ mode }) => {
 
   const handleFinish = async (values) => {
     setFormErrors({});
-
-    if (productImages.length === 0) {
-      setFormErrors(prev => ({ ...prev, imageURL: 'Please upload at least one product image' }));
-      return;
-    }
-
-    // Upload main product images
-    const uploadedImages = await Promise.all(
-      productImages.map(async (img) => {
-        if (img.file) {
-          const response = await uploadImage(img.file, product?.productID);
-          return response.data.public_id;
-        }
-        return img.url;
-      }),
-    );
+    console.log('handleFinish called with values:', values);
+    console.log('Current variants:', variants);
+    console.log('Current product images:', productImages);
 
     const productData = {
       productName: values.productName,
-      imageURL: uploadedImages,
       description: values.description || '',
       price: values.price,
       status: values.status || 'AVAILABLE',
@@ -243,53 +229,76 @@ const ProductForm = ({ mode }) => {
       categoryID: values.categoryID,
       supplierID: values.supplierID,
     };
+    
+    console.log('Product data to be saved:', productData);
 
     setSubmitting(true);
     try {
       let productId;
       if (mode === 'edit') {
         productId = product.productID;
-        await updateProduct(productId, productData);
+        console.log('Updating product with ID:', productId);
+        const updateResponse = await updateProduct(productId, productData);
+        console.log('Update product response:', updateResponse);
         message.success('Product updated successfully');
       } else {
+        console.log('Creating new product');
         const response = await createProduct(productData);
+        console.log('Create product response:', response);
         productId = response.data.productID;
         message.success('Product created successfully');
       }
 
-      const variantPromises = variants.map(async (variant) => {
+      console.log('Processing variants for product ID:', productId);
+      const variantPromises = variants.map(async (variant, index) => {
         const variantData = {
           size: variant.size,
           color: variant.color,
           stockQuantity: variant.stockQuantity || variant.stock || 0,
           status: variant.status || 'AVAILABLE',
-          image: variant.image, 
+          image: variant.image,
         };
-        if (variant.productDetailID) {
-          return updateProductDetail(variant.productDetailID, variantData);          
-        } else {          
-          return createProductDetail(productId, variantData);
+        
+        // Đảm bảo định dạng đường dẫn ảnh đúng
+        if (variantData.image && variantData.image.includes('project_ShoeStore/ImageProduct/')) {
+          variantData.image = variantData.image.replace('project_ShoeStore/ImageProduct/', '');
         }
         
+        console.log(`Processing variant ${index + 1}:`, variantData);
+        
+        if (variant.productDetailID) {
+          console.log('Updating existing variant with ID:', variant.productDetailID);
+          return updateProductDetail(variant.productDetailID, variantData)
+            .then(response => {
+              console.log('Update variant response:', response);
+              return response;
+            })
+            .catch(error => {
+              console.error('Error updating variant:', error);
+              throw error;
+            });
+        } else {
+          console.log('Creating new variant for product ID:', productId);
+          return createProductDetail(productId, variantData)
+            .then(response => {
+              console.log('Create variant response:', response);
+              return response;
+            })
+            .catch(error => {
+              console.error('Error creating variant:', error);
+              throw error;
+            });
+        }
       });
+      
       await Promise.all(variantPromises);
+      console.log('All variants processed successfully');
       navigate('/admin/products');
     } catch (error) {
       console.error('Error saving product:', error);
       message.error('Unable to save product. Please try again later.');
     } finally {
       setSubmitting(false);
-    }
-  };
-
-  const handleImagesUpdate = (newImages) => {
-    setProductImages(newImages);
-    if (formErrors.imageURL) {
-      setFormErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors.imageURL;
-        return newErrors;
-      });
     }
   };
 
@@ -340,12 +349,9 @@ const ProductForm = ({ mode }) => {
         <Row gutter={10}>
           <Col span={16}>
             <Card
-              bordered={false}
               style={{
                 marginBottom: 16,
                 borderRadius: 8,
-                boxShadow: '0 1px 2px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.1)',
-                background: 'linear-gradient(to right bottom, #ffffff,rgb(241, 241, 241))'
               }}
             >
               <h3 style={{ marginTop: 0 }}>Product Information</h3>
@@ -452,7 +458,7 @@ const ProductForm = ({ mode }) => {
                             marginRight: 16,
                             marginBottom: 8,
                           }}
-                          disabled={option.value === 'AVAILABLE' || option.value === 'LIMITED_STOCK'}
+                          disabled={false}t
                         >
                           <Tag
                             color={option.color}
@@ -514,18 +520,14 @@ const ProductForm = ({ mode }) => {
                   </div>
                 </Col>
               </Row>
-
-              <ProductImages
-                product={product}
-                onImagesUpdate={handleImagesUpdate}
-                maxImages={8}
-              />
-              {formErrors.imageURL && (
-                <div style={{ color: '#ff4d4f', marginTop: -16, marginBottom: 16 }}>
-                  {formErrors.imageURL}
-                </div>
-              )}
             </Card>
+            <Variant
+              variants={variants}
+              onEditVariant={handleEditVariant}
+              onAddVariant={handleAddVariant}
+              onUpdateVariantStatus={handleUpdateVariantStatus}
+              error={formErrors.productDetails}
+            />
           </Col>
 
           <Col span={8}>
@@ -553,7 +555,6 @@ const ProductForm = ({ mode }) => {
 
               {appliedPromotions.length > 0 && (
                 <Card
-                  bordered={false}
                   style={{
                     marginBottom: 8,
                     borderRadius: 8,
@@ -620,13 +621,7 @@ const ProductForm = ({ mode }) => {
           </Col>
         </Row>
 
-        <Variant
-          variants={variants}
-          onEditVariant={handleEditVariant}
-          onAddVariant={handleAddVariant}
-          onUpdateVariantStatus={handleUpdateVariantStatus}
-          error={formErrors.productDetails}
-        />
+
 
         <EditVariantModal
           open={isEditVariantModalOpen}
