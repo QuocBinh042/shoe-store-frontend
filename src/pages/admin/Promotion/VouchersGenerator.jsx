@@ -266,7 +266,7 @@ const VoucherGenerator = () => {
         <Text>
           {record.discountType === 'PERCENT' || record.discountType === 'percentage'
             ? `${record.discountValue}%`
-            : `$${record.discountValue}`}
+            : currencyFormat(record.discountValue)}
         </Text>
       ),
     },
