@@ -42,7 +42,7 @@ const OrderTimeline = ({ orderId, currentStatus, onAction }) => {
     if (nextStatus === 'CANCELED') {
       setShowCancelModal(true);
     } else {
-      onAction(nextStatus, { userId: user?.id });
+      onAction(nextStatus, { userID: user?.userID });
     }
   };
 
@@ -51,7 +51,7 @@ const OrderTimeline = ({ orderId, currentStatus, onAction }) => {
     try {
       await onAction('CANCELED', { 
         cancelReason: reason,
-        userId: user?.id 
+        userID: user?.userID 
       });
       setShowCancelModal(false);
     } finally {

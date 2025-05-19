@@ -9,7 +9,7 @@ import OrderTimeline from './OrderTimeline';
 import { ORDER_STATUSES, ORDER_STATUS_DETAILS, getStatusColor } from '../../../../constants/orderConstant';
 import { SIZE_OPTIONS, COLOR_OPTIONS } from '../../../../constants/productConstant';
 import { currencyFormat } from '../../../../utils/helper';
-import { getOrderDetailByOrder } from '../../../../services/orderDetailService';
+import { getOrderDetailByOrder, updateOrderDetail } from '../../../../services/orderDetailService'; // thêm updateOrderDetail
 import EditCustomerModal from '../Modals/EditCustomerModal';
 import EditShippingModal from '../Modals/EditShippingModal';
 import EditOrderItemModal from '../Modals/EditOrderItemModal';
@@ -27,24 +27,25 @@ const OrderDetail = () => {
   const [order, setOrder] = useState(null);
   const { updateOrderStatus, loading, error } = useOrderStatus();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await getOrderDetailByOrder(orderID);
-        console.log(response);
-        const orderData = await getOrderById(orderID);
-        console.log(orderData);
-        setOrder(orderData.data);
-        if (response.statusCode === 200) {
-          setOrderDetails(response.data);
-        } else {
-          console.error('Failed to fetch order detail:', response);
-        }
-      } catch (error) {
-        console.error('Error fetching order detail:', error);
+  // Load order + order detail
+  const fetchData = async () => {
+    try {
+      const response = await getOrderDetailByOrder(orderID);
+      const orderData = await getOrderById(orderID);
+      setOrder(orderData.data);
+      if (response.statusCode === 200) {
+        setOrderDetails(response.data);
+      } else {
+        console.error('Failed to fetch order detail:', response);
       }
-    };
+    } catch (error) {
+      console.error('Error fetching order detail:', error);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
+    // eslint-disable-next-line
   }, [orderID]);
 
   if (!orderDetails.length) return null;
@@ -58,7 +59,6 @@ const OrderDetail = () => {
 
     for (let i = 0; i < ORDER_STATUSES.length; i++) {
       const status = ORDER_STATUSES[i];
-
       const meta = ORDER_STATUS_DETAILS[status] || {};
       result.push({
         title: meta.title || status,
@@ -74,13 +74,15 @@ const OrderDetail = () => {
     return result;
   };
 
-
+  // Map lại items để giữ id
   const mappedOrderData = {
     orderNumber: order.code,
     date: order.orderDate,
     status: [{ label: order.status, color: getStatusColor(order.status) }],
-    items: orderDetails.map((item, idx) => ({
+    items: orderDetails.map((item, idx) => (
+      {
       key: idx.toString(),
+      orderDetailId: item.orderDetailId,
       productImage: item.productDetails?.image || 'https://dummyimage.com/100x100/cccccc/000000&text=No+Image',
       color: item.productDetails?.color || '',
       size: item.productDetails?.size || '',
@@ -119,13 +121,10 @@ const OrderDetail = () => {
         status: nextStatus,
         trackingNumber: additionalData.trackingNumber || null,
         cancelReason: additionalData.cancelReason || null,
-        userId: additionalData.userId || null
+        userId: additionalData.userID || null
       };
-      
       const updatedOrder = await updateOrderStatus(orderID, statusUpdateData);
-      
       if (updatedOrder) {
-        // Refresh the order data to show the updated status and timeline
         const orderData = await getOrderById(orderID);
         setOrder(orderData.data);
         message.success('Order status updated successfully');
@@ -134,6 +133,14 @@ const OrderDetail = () => {
       message.error(err.message || 'Failed to update order status');
     }
   };
+
+  // Xử lý mở modal edit item, set đúng object và giữ id
+  const handleEditItem = (item) => {
+    setEditingItem(item);
+    setEditItemModalOpen(true);
+  };
+
+  
 
   return (
     <div style={{ background: '#f0f2f5', padding: 8 }}>
@@ -160,10 +167,7 @@ const OrderDetail = () => {
               discount={mappedOrderData.totals.discount}
               feeShip={mappedOrderData.totals.feeShip}
               total={mappedOrderData.totals.total}
-              onEditItem={(item) => {
-                setEditingItem(item);
-                setEditItemModalOpen(true);
-              }}
+              onEditItem={handleEditItem}
               editable={isPending && !isDelivered}
             />
           </Col>
@@ -185,7 +189,7 @@ const OrderDetail = () => {
         <Row style={{ marginTop: 24 }}>
           <Col span={24}>
             <OrderTimeline
-              orderId={order.orderID}   
+              orderId={order.orderID}
               currentStatus={order.status}
               onAction={handleOrderAction}
               loading={loading}
@@ -223,14 +227,12 @@ const OrderDetail = () => {
       <EditOrderItemModal
         open={editItemModalOpen}
         onCancel={() => setEditItemModalOpen(false)}
-        onSubmit={(updatedItem) => {
-          console.log('Item updated:', updatedItem);
-          setEditItemModalOpen(false);
-        }}
         initialValues={editingItem}
         colorOptions={COLOR_OPTIONS.map(opt => opt.value)}
         sizeOptions={SIZE_OPTIONS.map(opt => opt.value)}
         disabled={isDelivered}
+        orderDetailId={editingItem?.orderDetailId}
+        reloadOrderDetail={fetchData}
       />
     </div>
   );
