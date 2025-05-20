@@ -47,7 +47,7 @@ const OrderDashboard = () => {
   const [activeStatusOption, setActiveStatusOption] = useState('ALL');
   const [sortOption, setSortOption] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
+  const [pageSize, setPageSize] = useState(10);
   const [totalOrdersCount, setTotalOrdersCount] = useState(0);
   const [dateRange, setDateRange] = useState([null, null]);
 
@@ -63,9 +63,10 @@ const OrderDashboard = () => {
     {
       title: 'Total Orders',
       value: totalOrders,
-      icon: <ShoppingCartOutlined style={{ fontSize: 24, color: '#52c41a' }} />,
-      color: '#f6ffed',
-      borderColor: '#b7eb8f',
+      icon: <ShoppingCartOutlined style={{ fontSize: 24, color: '#722ed1' }} />,
+      color: '#f9f0ff',
+      borderColor: '#d3adf7',
+
     },
     {
       title: 'Total Order Amount',
@@ -75,11 +76,11 @@ const OrderDashboard = () => {
       borderColor: '#91d5ff',
     },
     {
-      title: 'Completed Orders',
+      title: 'Delivered Orders',
       value: completedOrders,
-      icon: <CheckCircleOutlined style={{ fontSize: 24, color: '#722ed1' }} />,
-      color: '#f9f0ff',
-      borderColor: '#d3adf7',
+      icon: <CheckCircleOutlined style={{ fontSize: 24, color: '#52c41a' }} />,
+      color: '#f6ffed',
+      borderColor: '#b7eb8f',
     },
     {
       title: 'Canceled Orders',
@@ -109,13 +110,15 @@ const OrderDashboard = () => {
         });
         console.log('Filtered Orders:', result);
         console.log(activeTimeTab, status, searchText, from, to, sortOption);
-        if (result && result.data.items) {
+        if (result && result.data && result.data.items) {
           const rows = result.data.items.map((order) => ({
             key: order.orderID,
             ...order,
           }));
           setOrders(rows);
-          setTotalOrdersCount(result.total || rows.length);
+          const total = result.data.totalElements || result.total || 0;
+          console.log('Total elements from API:', total);
+          setTotalOrdersCount(total > rows.length ? total : rows.length);
         } else {
           message.error('Không thể tải danh sách đơn hàng');
         }
@@ -136,13 +139,15 @@ const OrderDashboard = () => {
             orderData = await getAllOrdersPaged(currentPage, pageSize);
             break;
         }
-        if (orderData.statusCode === 200) {
+        if (orderData && orderData.statusCode === 200 && orderData.data && orderData.data.items) {
           const rows = orderData.data.items.map((order) => ({
             key: order.orderID,
             ...order,
           }));
           setOrders(rows);
-          setTotalOrdersCount(orderData.total || rows.length);
+          const total = orderData.data.totalElements || orderData.total || 0;
+          console.log('Total elements from API (normal fetch):', total);
+          setTotalOrdersCount(total > rows.length ? total : rows.length);
         } else {
           message.error('Không thể tải danh sách đơn hàng');
         }
@@ -244,6 +249,9 @@ const OrderDashboard = () => {
     { key: 'year', label: 'Year' },
   ];
 
+  // Set fixed page size options
+  const pageSizeOptions = ['10', '20', '50', '100'];
+
   const handleTimeTabChange = (key) => {
     setActiveTimeTab(key);
     setCurrentPage(1);
@@ -257,7 +265,7 @@ const OrderDashboard = () => {
   const handleSearch = async (value) => {
     setSearchText(value);
     setCurrentPage(1);
-    
+
     if (!value) {
       setIsActiveSearch(false);
     } else {
@@ -322,11 +330,13 @@ const OrderDashboard = () => {
             onDateRangeChange={handleDateRangeChange}
           />
 
+
           <OrderTable
             orders={orders}
             totalOrdersCount={totalOrdersCount}
             currentPage={currentPage}
             pageSize={pageSize}
+            pageSizeOptions={pageSizeOptions}
             onPageChange={handlePageChange}
             onNavigate={navigate}
           />

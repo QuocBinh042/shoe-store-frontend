@@ -9,7 +9,8 @@ const { Option } = Select;
 
 const EditVariantModal = ({ open, variant, onCancel, onFinish, productId }) => {
   const [form] = Form.useForm();
-  const [image, setImage] = useState(null); 
+  const [image, setImage] = useState(null); // publicId hoặc url cũ
+  const [imageFile, setImageFile] = useState(null); // file mới chọn
   const [previewVisible, setPreviewVisible] = useState(false);
   const [isStatusWarning, setIsStatusWarning] = useState(false);
   const [pendingStatus, setPendingStatus] = useState(null);
@@ -28,6 +29,7 @@ const EditVariantModal = ({ open, variant, onCancel, onFinish, productId }) => {
           status: initialStatus,
         });
         setImage(variant.image || null);
+        setImageFile(null);
         setOriginalStatus(initialStatus);
       } else {
         form.setFieldsValue({
@@ -37,6 +39,7 @@ const EditVariantModal = ({ open, variant, onCancel, onFinish, productId }) => {
           status: 'AVAILABLE',
         });
         setImage(null);
+        setImageFile(null);
         setOriginalStatus('AVAILABLE');
       }
       setIsStatusWarning(false);
@@ -75,94 +78,115 @@ const EditVariantModal = ({ open, variant, onCancel, onFinish, productId }) => {
     setPendingStatus(null);
   };
 
-  const handleVariantFinish = (values) => {
+  const handleImageSelect = ({ file }) => {
+    if (!file.type.startsWith('image/')) {
+      message.error('You can only upload image files!');
+      return;
+    }
+    const isLt2M = file.size / 1024 / 1024 < 2;
+    if (!isLt2M) {
+      message.error('Image must be smaller than 2MB!');
+      return;
+    }
+    setImageFile(file);
+    setImage(null); // Đánh dấu là ảnh mới, không dùng ảnh cũ nữa
+  };
+
+  const handleVariantFinish = async (values) => {
     if (isStatusWarning) {
       message.error('Please confirm or cancel the status change before submitting.');
       return;
     }
-
+    let finalImage = image;
+    if (imageFile) {
+      setUploading(true);
+      try {
+        const color = values.color.toUpperCase();
+        const publicId = `${productId}/product${productId}_${color}`;
+        const response = await uploadImage(imageFile, productId, publicId); // uploadImage cần nhận publicId nếu có
+        finalImage = response.data.public_id;
+        if (finalImage.includes('project_ShoeStore/ImageProduct/')) {
+          finalImage = finalImage.replace('project_ShoeStore/ImageProduct/', '');
+        }
+        if (!finalImage.startsWith('/')) {
+          finalImage = '/' + finalImage;
+        }
+        console.log("finalImage after upload:", finalImage);
+        message.success('Image uploaded successfully');
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        console.error('Error response data:', error.response?.data);
+        message.error('Failed to upload image');
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
     const formattedValues = {
       ...(variant && { productDetailID: variant.productDetailID }),
       size: `SIZE_${values.size}`,
       color: values.color.toUpperCase(),
       stockQuantity: values.stock,
       status: values.status || 'AVAILABLE',
-      image, // Now a string (Cloudinary public_id or null)
+      image: finalImage, // Đường dẫn đúng định dạng
     };
-
     onFinish(formattedValues);
     onCancel();
   };
 
-  const handleImageUpload = async (options) => {
-    const { file } = options;
-    if (!file.type.startsWith('image/')) {
-      message.error('You can only upload image files!');
-      return;
-    }
-
-    const isLt2M = file.size / 1024 / 1024 < 2;
-    if (!isLt2M) {
-      message.error('Image must be smaller than 2MB!');
-      return;
-    }
-
-    setUploading(true);
-    try {
-      const response = await uploadImage(file, productId);
-      const publicId = response.data.public_id; 
-      setImage(publicId);
-      message.success('Image uploaded successfully');
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      message.error('Failed to upload image');
-    } finally {
-      setUploading(false);
-    }
-  };
-
   const handleRemoveImage = () => {
     setImage(null);
+    setImageFile(null);
   };
 
   const handlePreviewImage = () => {
     setPreviewVisible(true);
   };
 
-  const renderImageWithActions = () => (
-    <div style={{ position: 'relative', width: '100%', height: 120, marginBottom: 8 }}>
-      <CloudinaryImage
-        publicId={image}
-        alt="Variant"
-        options={{ width: 120, height: 120, crop: 'fill' }}
-        style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          display: 'flex',
-          zIndex: 10,
-        }}
-      >
-        <Button
-          type="text"
-          size="small"
-          icon={<EyeOutlined />}
-          onClick={handlePreviewImage}
-          style={{ color: 'white', backgroundColor: 'rgba(0,0,0,0.5)' }}
-        />
-        <Button
-          type="text"
-          size="small"
-          icon={<DeleteOutlined />}
-          onClick={handleRemoveImage}
-          style={{ color: 'white', backgroundColor: 'rgba(0,0,0,0.5)' }}
-        />
+  const renderImageWithActions = () => {
+    return (
+      <div style={{ position: 'relative', width: '100%', height: 120, marginBottom: 8 }}>
+        {imageFile ? (
+          <img
+            src={URL.createObjectURL(imageFile)}
+            alt="Variant"
+            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
+          />
+        ) : image ? (
+          <CloudinaryImage
+            publicId={image.includes('project_ShoeStore/ImageProduct/') ? image : `project_ShoeStore/ImageProduct/${image}`}
+            alt="Variant"
+            options={{ width: 120, height: 120, crop: 'fill' }}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 8 }}
+          />
+        ) : null}
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            display: 'flex',
+            zIndex: 10,
+          }}
+        >
+          <Button
+            type="text"
+            size="small"
+            icon={<EyeOutlined />}
+            onClick={handlePreviewImage}
+            style={{ color: 'white', backgroundColor: 'rgba(0,0,0,0.5)' }}
+          />
+          <Button
+            type="text"
+            size="small"
+            icon={<DeleteOutlined />}
+            onClick={handleRemoveImage}
+            style={{ color: 'white', backgroundColor: 'rgba(0,0,0,0.5)' }}
+          />
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const uploadButton = (
     <div>
@@ -184,13 +208,13 @@ const EditVariantModal = ({ open, variant, onCancel, onFinish, productId }) => {
         <Row gutter={16}>
           <Col span={10}>
             <Form.Item label="Image">
-              {image ? (
+              {(image || imageFile) ? (
                 renderImageWithActions()
               ) : (
                 <Upload
                   listType="picture-card"
                   showUploadList={false}
-                  customRequest={handleImageUpload}
+                  customRequest={handleImageSelect}
                   disabled={uploading}
                 >
                   {uploadButton}
@@ -326,7 +350,7 @@ const EditVariantModal = ({ open, variant, onCancel, onFinish, productId }) => {
       >
         {image && (
           <CloudinaryImage
-            publicId={image}
+            publicId={image.includes('project_ShoeStore/ImageProduct/') ? image : `project_ShoeStore/ImageProduct/${image}`}
             alt="Variant Preview"
             options={{ width: 600, crop: 'limit' }}
             style={{ width: '100%', maxHeight: 500, objectFit: 'contain' }}

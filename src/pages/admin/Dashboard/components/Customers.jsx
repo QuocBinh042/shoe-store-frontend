@@ -29,11 +29,9 @@ const { Text } = Typography;
 export default function Customers({ year = new Date().getFullYear() }) {
   const { growthData, metrics, loading, error } = useCustomerDashboard(year);
 
-  // For animated progress bars
   const [percentages, setPercentages] = useState({ retention: 0, repeat: 0 });
   useEffect(() => {
     if (!loading && metrics) {
-      // trigger CSS transition on Progress
       setPercentages({
         retention: metrics.retentionRate,
         repeat: metrics.repeatPurchaseRate

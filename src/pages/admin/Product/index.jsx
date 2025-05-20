@@ -61,7 +61,7 @@ const ProductManager = () => {
 
   const statusOptions = useMemo(
     () => [
-      { value: undefined, label: 'All Status' },
+      { value: null, label: 'All Status' },
       ...STATUS_PRODUCT.map((status) => ({
         value: status.value,
         label: status.label,
@@ -72,7 +72,7 @@ const ProductManager = () => {
 
   const stockOptions = useMemo(
     () => [
-      { value: undefined, label: 'All Stock' },
+      { value: null, label: 'All Stock' },
       { value: 'in_stock', label: 'In Stock' },
       { value: 'out_of_stock', label: 'Out of Stock' },
     ],
@@ -81,7 +81,7 @@ const ProductManager = () => {
 
   const categoryOptions = useMemo(() => {
     return [
-      { value: undefined, label: 'All Categories' },
+      { value: null, label: 'All Categories' },
       ...categories.map((category) => ({
         value: category.categoryID,
         label: category.name,
@@ -91,7 +91,7 @@ const ProductManager = () => {
 
   const brandOptions = useMemo(() => {
     return [
-      { value: undefined, label: 'All Brands' },
+      { value: null, label: 'All Brands' },
       ...brands.map((brand) => ({
         value: brand.brandID,
         label: brand.name,
@@ -101,7 +101,7 @@ const ProductManager = () => {
 
   const supplierOptions = useMemo(() => {
     return [
-      { value: undefined, label: 'All Suppliers' },
+      { value: null, label: 'All Suppliers' },
       ...suppliers.map((supplier) => ({
         value: supplier.supplierID,
         label: supplier.supplierName,
@@ -117,6 +117,7 @@ const ProductManager = () => {
           getAllCategories(),
           getAllSuppliers(),
         ]);
+        
         if (brandResponse.statusCode === 200) setBrands(brandResponse.data);
         if (categoryResponse.statusCode === 200) setCategories(categoryResponse.data);
         if (supplierResponse.statusCode === 200) setSuppliers(supplierResponse.data);
@@ -135,24 +136,31 @@ const ProductManager = () => {
         const params = {
           page: pagination.currentPage,
           pageSize: pagination.pageSize,
-          status: filters.status,
-          categoryIds: filters.categoryId ? [filters.categoryId] : undefined,
-          brandIds: filters.brandId ? [filters.brandId] : undefined,
-          supplierIds: filters.supplierId ? [filters.supplierId] : undefined,
-          searchText: filters.searchText,
-          stock: filters.stock,
+          forceReload: 1
         };
+        
+        // Only add parameters if they have actual values (not null, undefined, or empty string)
+        if (filters.status) params.status = filters.status;
+        if (filters.categoryId) params.categoryIds = [filters.categoryId];
+        if (filters.brandId) params.brandIds = [filters.brandId];
+        if (filters.supplierId) params.supplierIds = [filters.supplierId];
+        if (filters.searchText && filters.searchText.trim() !== '') params.searchText = filters.searchText;
+        if (filters.stock) params.stock = filters.stock;
+        
+        console.log("Fetch params:", JSON.stringify(params));
         const productResponse = await getAllProducts(params);
+        
         if (productResponse.statusCode === 200) {
-          
           const { items, totalElements, currentPage, pageSize } = productResponse.data;
+          console.log('Response data:', productResponse.data);
+          console.log('Total elements:', totalElements);
           setProducts(items);
           setPagination((prev) => ({
             ...prev,
-            currentPage,
-            pageSize,
-            totalElements,
-            totalPages: Math.ceil(totalElements / pageSize),
+            currentPage: currentPage || pagination.currentPage,
+            pageSize: pageSize || pagination.pageSize,
+            totalElements: totalElements,
+            totalPages: Math.ceil(totalElements / (pageSize || pagination.pageSize)),
           }));
         }
       } catch (error) {
@@ -172,21 +180,28 @@ const ProductManager = () => {
       const params = {
         page,
         pageSize,
-        status: filters.status,
-        categoryIds: filters.categoryId ? [filters.categoryId] : undefined,
-        brandIds: filters.brandId ? [filters.brandId] : undefined,
-        supplierIds: filters.supplierId ? [filters.supplierId] : undefined,
-        searchText: filters.searchText,
-        stock: filters.stock,
+        forceReload: 1
       };
+      
+      // Only add parameters if they have actual values (not null, undefined, or empty string)
+      if (filters.status) params.status = filters.status;
+      if (filters.categoryId) params.categoryIds = [filters.categoryId];
+      if (filters.brandId) params.brandIds = [filters.brandId];
+      if (filters.supplierId) params.supplierIds = [filters.supplierId];
+      if (filters.searchText && filters.searchText.trim() !== '') params.searchText = filters.searchText;
+      if (filters.stock) params.stock = filters.stock;
+      
+      console.log('Filter params:', JSON.stringify(params));
       const productResponse = await getAllProducts(params);
       if (productResponse.statusCode === 200) {
         const { items, totalElements, currentPage, pageSize } = productResponse.data;
+        console.log('Response data full:', productResponse.data);
+        console.log('Total elements:', totalElements);
         setProducts(items);
         setPagination({
-          currentPage,
-          pageSize,
-          totalElements,
+          currentPage: currentPage || page,
+          pageSize: pageSize || pageSize,
+          totalElements: totalElements,
           totalPages: Math.ceil(totalElements / pageSize),
         });
       }
@@ -244,8 +259,12 @@ const ProductManager = () => {
   };
 
   const handleFilterChange = (filterType, value) => {
+    // If value is null, undefined, or empty string, treat it as a "select all" option
     setFilters((prev) => {
-      const newFilters = { ...prev, [filterType]: value };
+      const newFilters = { 
+        ...prev, 
+        [filterType]: value === null || value === undefined || value === '' ? null : value 
+      };
       fetchFilteredProducts(newFilters, 1, pagination.pageSize);
       return newFilters;
     });
@@ -271,26 +290,31 @@ const ProductManager = () => {
       stock: undefined,
     });
     setPagination((prev) => ({ ...prev, currentPage: 1 }));
+    fetchFilteredProducts({}, 1, pagination.pageSize);
   };
 
-  // Cấu hình cột cho bảng
   const columns = [
     {
       title: 'Product',
       dataIndex: 'productName',
       key: 'productName',
-      render: (_, record) => (
-        <Space>
-          {record.imageURL && record.imageURL.length > 0 && (
-            <img
-              src={buildCloudinaryUrl(`project_ShoeStore/ImageProduct/${record.productID}/${record.imageURL[0]}`, { width: 70, height: 60, crop: 'fill' })}
-              alt={record.productName}
-              style={{borderRadius: '50%', marginRight: 8 }}
-            />
-          )}
-          <div style={{ fontWeight: 500 }}>{record.productName}</div>
-        </Space>
-      ),
+      render: (_, record) => {
+        const firstImage = record.productDetails && record.productDetails.length > 0
+          ? "project_ShoeStore/ImageProduct" + record.productDetails[0].image
+          : null;
+        return (
+          <Space>
+            {firstImage && (
+              <img
+                src={buildCloudinaryUrl(firstImage, { width: 70, height: 60, crop: 'fill' })}
+                alt={record.productName}
+                style={{ borderRadius: '50%', marginRight: 8 }}
+              />
+            )}
+            <div style={{ fontWeight: 500 }}>{record.productName}</div>
+          </Space>
+        );
+      },
     },
     { title: 'Category', dataIndex: 'categoryName', key: 'category' },
     { title: 'Brand', dataIndex: 'brandName', key: 'brand', align: 'center' },
@@ -497,7 +521,8 @@ const ProductManager = () => {
             current: pagination.currentPage,
             pageSize: pagination.pageSize,
             total: pagination.totalElements,
-            showSizeChanger: false,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
           }}
           rowClassName="clickable-row"

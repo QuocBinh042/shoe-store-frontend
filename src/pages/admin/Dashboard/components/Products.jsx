@@ -46,11 +46,10 @@ export default function Products() {
                   <Card
                     hoverable
                     className="product-card"
-                    bodyStyle={{ padding: 12 }}
                     cover={
                       <div className="product-image-wrapper">
                         <CloudinaryImage
-                          publicId={item.imageUrl}
+                          publicId={`project_ShoeStore/ImageProduct/${item.imageUrl}`}
                           alt={item.name}
                           options={{ width: 400, height: 300, crop: 'fill' }}
                           className="product-image"
@@ -115,14 +114,14 @@ export default function Products() {
               size: 'small'
             }}
             renderItem={item => (
+              console.log(item),
               <List.Item
                 key={item.productId}
-                actions={[<Button type="primary" ghost size="small">Restock</Button>]}
               >
-                <List.Item.Meta
+                <List.Item.Meta                  
                   avatar={
                     <CloudinaryImage
-                      publicId={item.imageUrl}
+                      publicId={`project_ShoeStore/ImageProduct/${item.image}`}
                       alt={item.name}
                       options={{ width: 60, height: 60, crop: 'fill' }}
                       className="product-thumb"

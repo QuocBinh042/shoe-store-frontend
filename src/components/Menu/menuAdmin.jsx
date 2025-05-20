@@ -17,11 +17,11 @@ const AdminMenu = [
     icon: <Icons.CodeSandboxOutlined />,
     label: <NavLink to="orders" >Orders</NavLink>,
   },
-  {
-    key: 'shipment',
-    icon: <Icons.CarOutlined />,
-    label: <NavLink to="shipment" >Shipment</NavLink>,
-  },
+  // {
+  //   key: 'shipment',
+  //   icon: <Icons.CarOutlined />,
+  //   label: <NavLink to="shipment" >Shipment</NavLink>,
+  // },
   {
     key: 'promotions',
     icon: <Icons.TagOutlined />,

@@ -21,7 +21,7 @@ import PromotionManager from "../pages/admin/Promotion";
 import PromotionForm from "../pages/admin/Promotion/PromotionForm";
 import PromotionDetail from "../pages/admin/Promotion/PromotionDetail";
 import PromotionAnalytics from "../pages/admin/Promotion/PromotionAnalytics";
-import CouponGenerator from "../pages/admin/Promotion/CouponGenerator";
+import VoucherGenerator from "../pages/admin/Promotion/VouchersGenerator";
 import MarketingIntegration from "../pages/admin/Promotion/MarketingIntegration";
 import CustomerManager from "../pages/admin/Customer";
 import CustomerDetail from "../pages/admin/Customer/CustomerDetails";
@@ -133,8 +133,8 @@ export const routes = [
         element: <PromotionAnalytics />,
       },
       {
-        path: "promotions/coupons",
-        element: <CouponGenerator />,
+        path: "promotions/vouchers",
+        element: <VoucherGenerator />,
       },
       {
         path: "promotions/marketing",

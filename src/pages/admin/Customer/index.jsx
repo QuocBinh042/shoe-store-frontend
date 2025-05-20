@@ -13,29 +13,45 @@ const Customer = () => {
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState('add');
   const [refresh, setRefresh] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(12);
-  const [totalItems, setTotalItems] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    pageSize: 10,
+    totalElements: 0,
+    totalPages: 0,
+  });
   const location = useLocation();
   const navigate = useNavigate();
   const isDetailView = location.pathname.includes('/admin/customers/');
 
-  const loadCustomers = async (page = 1, size = 12) => {
-    const data = await getCustomers(page, size);
-    if (data.statusCode === 200) {
-      const enhanced = await enhanceCustomers(data.data.items);
-      setCustomers(enhanced);
-      setTotalItems(data.data.totalElements);
-      setCurrentPage(page);
-      setPageSize(size);
+  const loadCustomers = async (page = 1, size = 10) => {
+    setLoading(true);
+    try {
+      const data = await getCustomers(page, size);
+      if (data.statusCode === 200) {
+        const enhanced = await enhanceCustomers(data.data.items);
+        setCustomers(enhanced);
+        setPagination(prev => ({
+          ...prev,
+          currentPage: data.data.currentPage || page,
+          pageSize: data.data.pageSize || size,
+          totalElements: data.data.totalElements,
+          totalPages: Math.ceil(data.data.totalElements / size),
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading customers:', error);
+      message.error('Failed to load customers');
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
     if (!location.pathname.includes("/admin/customers/")) {
-      loadCustomers(currentPage, pageSize);
+      loadCustomers(pagination.currentPage, pagination.pageSize);
     }
-  }, [location.pathname, refresh, currentPage, pageSize]);
+  }, [location.pathname, refresh]);
 
   const enhanceCustomers = async (customers) => {
     return Promise.all(
@@ -57,19 +73,31 @@ const Customer = () => {
     );
   };
 
-  const handleSearch = async (page = 1, size = 12) => {
-    let data;
-    if (searchKeyword.trim() === '') {
-      data = await getCustomers(page, size);
-    } else {
-      data = await searchUsers(searchKeyword, page, size);
-    }
-    if (data.statusCode === 200) {
-      const enhanced = await enhanceCustomers(data.data.items);
-      setCustomers(enhanced);
-      setTotalItems(data.data.totalElements);
-      setCurrentPage(page);
-      setPageSize(size);
+  const handleSearch = async (page = 1, size = 10) => {
+    setLoading(true);
+    try {
+      let data;
+      if (searchKeyword.trim() === '') {
+        data = await getCustomers(page, size);
+      } else {
+        data = await searchUsers(searchKeyword, page, size);
+      }
+      if (data.statusCode === 200) {
+        const enhanced = await enhanceCustomers(data.data.items);
+        setCustomers(enhanced);
+        setPagination(prev => ({
+          ...prev,
+          currentPage: data.data.currentPage || page,
+          pageSize: data.data.pageSize || size,
+          totalElements: data.data.totalElements,
+          totalPages: Math.ceil(data.data.totalElements / size),
+        }));
+      }
+    } catch (error) {
+      console.error('Error searching customers:', error);
+      message.error('Failed to search customers');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -85,6 +113,16 @@ const Customer = () => {
     } catch (error) {
       console.error('Error adding customer:', error);
       message.error('Failed to add customer');
+    }
+  };
+
+  const handleTableChange = (paginationInfo) => {
+    const { current, pageSize } = paginationInfo;
+    setPagination(prev => ({ ...prev, currentPage: current, pageSize }));
+    if (searchKeyword.trim() === '') {
+      loadCustomers(current, pageSize);
+    } else {
+      handleSearch(current, pageSize);
     }
   };
 
@@ -108,15 +146,15 @@ const Customer = () => {
       key: 'status',
       render: (__, record) => (
         <Tag
-          color={record.status === 'Active' ? 'green' : 'red'}
-          style={{ fontWeight: record.status === 'Active' ? 'bold' : 'normal' }}
+          color={record.status === 'ACTIVE' ? 'green' : 'red'}
+          style={{ fontWeight: record.status === 'ACTIVE' ? 'bold' : 'normal' }}
         >
           {record.status}
         </Tag>
       ),
     },
     {
-      title: 'CUSTOMER GROUP',
+      title: 'TYPE',
       dataIndex: 'customerGroup',
       align: 'center',
       key: 'customerGroup',
@@ -179,7 +217,7 @@ const Customer = () => {
             <Input.Search
               value={searchKeyword}
               onChange={(e) => setSearchKeyword(e.target.value)}
-              onSearch={() => handleSearch(currentPage, pageSize)}
+              onSearch={() => handleSearch(1, pagination.pageSize)}
               placeholder="Search customer by name or email or phone number"
               allowClear
               style={{ width: '100%' }}
@@ -201,20 +239,15 @@ const Customer = () => {
           columns={columns}
           dataSource={customers}
           onRow={onRow}
+          loading={loading}
+          onChange={handleTableChange}
           pagination={{
-            current: currentPage,
-            pageSize: pageSize,
-            total: totalItems,
+            current: pagination.currentPage,
+            pageSize: pagination.pageSize,
+            total: pagination.totalElements,
+            showSizeChanger: true,
+            pageSizeOptions: ['10', '20', '50', '100'],
             showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} items`,
-            onChange: (page, pageSize) => {
-              setCurrentPage(page);
-              setPageSize(pageSize);
-              if (searchKeyword.trim() === '') {
-                loadCustomers(page, pageSize);
-              } else {
-                handleSearch(page, pageSize);
-              }
-            },
           }}
           rowClassName="clickable-row"
         />
