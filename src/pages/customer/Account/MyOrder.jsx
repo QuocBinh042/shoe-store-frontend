@@ -31,7 +31,6 @@ function MyOrder() {
   
       const detailedOrders = await Promise.all(
         fetchedOrders.map(async (order) => {
-          console.log(order)
           return {
             id: order.orderResponse.orderID,
             name: order.orderResponse.user.name || "Unknown",

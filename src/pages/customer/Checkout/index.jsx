@@ -13,6 +13,7 @@ import logoVNPAY from '../../../assets/images/logos/vnpay_logo.png';
 import { addPayment, getVnPayUrl } from "../../../services/paymentService";
 import { fetchVoucherWithPrice } from "../../../services/voucherService";
 import { fetchAddressByUser } from "../../../services/addressService";
+import { deleteCartItem } from "../../../services/cartItemService";
 import { useSelector } from "react-redux";
 
 const Checkout = () => {
@@ -40,7 +41,7 @@ const Checkout = () => {
   const [giftSelections, setGiftSelections] = useState({});
   const [giftProductVariants, setGiftProductVariants] = useState([]);
   const [currentGiftItem, setCurrentGiftItem] = useState(null);
-
+  console.log(selectedItems)
   const formatCurrency = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 
   const { totalCost, discount, shippingCost, subtotal } = useMemo(() => {
@@ -251,7 +252,17 @@ const Checkout = () => {
             await addOrderDetails(orderDetail);
           })
         );
-      
+        await Promise.all(
+          selectedItems
+            .filter(item => item.cartItemID) 
+            .map(async (item) => {
+              try {
+                await deleteCartItem(item.cartItemID);
+              } catch (error) {
+                console.error(`Failed to delete cart item ${item.cartItemID}:`, error);
+              }
+            })
+        );
         const payment = { paymentDate: new Date().toISOString(), status: "PENDING", order: { orderID } };
         await addPayment(payment);
 

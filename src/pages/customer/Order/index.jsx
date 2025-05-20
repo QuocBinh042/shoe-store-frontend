@@ -14,6 +14,7 @@ const OrderSuccess = ({ data }) => {
   };
 
   const handleLater = () => {
+    localStorage.removeItem('recentOrder');
     window.location.href = "/";
   };
 

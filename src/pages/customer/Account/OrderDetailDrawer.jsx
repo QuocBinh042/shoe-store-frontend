@@ -2,6 +2,7 @@ import { Modal, Button, Rate, Tag, Image, Tooltip, Divider, Drawer, message } fr
 import { EditOutlined, GiftOutlined } from "@ant-design/icons";
 import React, { useState, useEffect, useCallback } from "react";
 import { fetchReviewByOrderDetail, addReview } from "../../../services/reviewService";
+import { getVnPayUrl } from "../../../services/paymentService";
 import { useSelector } from "react-redux";
 
 function OrderDetailDrawer({ isOpen, onClose, order }) {
@@ -32,6 +33,18 @@ function OrderDetailDrawer({ isOpen, onClose, order }) {
 
   const openAddReviewModal = (detailId) => {
     setNewReview({ visible: true, detailId, rating: 0, comment: "" });
+  };
+  const handlePayment = async (totalCost, orderCode) => {
+    try {
+      const vnPayResponse = await getVnPayUrl(totalCost, orderCode);
+      if (vnPayResponse?.paymentUrl) {
+        window.location.href = vnPayResponse.paymentUrl;
+      } else {
+        message.error("Unable to get payment link.");
+      }
+    } catch (error) {
+      message.error("An error occurred while creating the payment.");
+    }
   };
 
   const handleReviewSubmit = async () => {
@@ -106,7 +119,7 @@ function OrderDetailDrawer({ isOpen, onClose, order }) {
               <Image
                 src={detail.image}
                 width={120}
-                style={{ borderRadius: "8px",height:"6rem",objectFit:"contain", boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)" }}
+                style={{ borderRadius: "8px", height: "6rem", objectFit: "contain", boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)" }}
               />
               <div style={{ marginLeft: 20, flex: 1 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -232,6 +245,18 @@ function OrderDetailDrawer({ isOpen, onClose, order }) {
           </div>
         </div>
       </div>
+      {order.paymentStatus === "PENDING" && order.paymentMethod === "VNPAY" && (
+        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <Button
+            type="primary"
+            size="large"
+            onClick={() => handlePayment(order.total, order.code)}
+          >
+            Make payment
+          </Button>
+
+        </div>
+      )}
 
       {/* Modal xem review */}
       <Modal
