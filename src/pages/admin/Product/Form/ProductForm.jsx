@@ -25,7 +25,8 @@ import {
   TagOutlined,
   PercentageOutlined,
   CheckCircleOutlined,
-  InfoCircleOutlined
+  InfoCircleOutlined,
+  DollarOutlined
 } from '@ant-design/icons';
 import Variant from './Variant';
 import EditVariantModal from './EditVariantModal';
@@ -229,7 +230,7 @@ const ProductForm = ({ mode }) => {
       categoryID: values.categoryID,
       supplierID: values.supplierID,
     };
-    
+
     console.log('Product data to be saved:', productData);
 
     setSubmitting(true);
@@ -258,14 +259,14 @@ const ProductForm = ({ mode }) => {
           status: variant.status || 'AVAILABLE',
           image: variant.image,
         };
-        
+
         // Đảm bảo định dạng đường dẫn ảnh đúng
         if (variantData.image && variantData.image.includes('project_ShoeStore/ImageProduct/')) {
           variantData.image = variantData.image.replace('project_ShoeStore/ImageProduct/', '');
         }
-        
+
         console.log(`Processing variant ${index + 1}:`, variantData);
-        
+
         if (variant.productDetailID) {
           console.log('Updating existing variant with ID:', variant.productDetailID);
           return updateProductDetail(variant.productDetailID, variantData)
@@ -290,7 +291,7 @@ const ProductForm = ({ mode }) => {
             });
         }
       });
-      
+
       await Promise.all(variantPromises);
       console.log('All variants processed successfully');
       navigate('/admin/products');
@@ -458,7 +459,7 @@ const ProductForm = ({ mode }) => {
                             marginRight: 16,
                             marginBottom: 8,
                           }}
-                          disabled={false}t
+                          disabled={false} t
                         >
                           <Tag
                             color={option.color}
@@ -576,13 +577,26 @@ const ProductForm = ({ mode }) => {
                         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 4 }}>
                           <Text strong style={{ marginRight: 8 }}>{promo.name}</Text>
                           <Tag color={getTagColor(promo.discountValue)}>
-                            <PercentageOutlined /> {promo.discountValue}% OFF
+                            {promo.type === 'PERCENTAGE' ? (
+                              <>
+                                <PercentageOutlined /> {Math.min(promo.discountValue, 100)}% OFF
+                              </>
+                            ) : promo.type === 'FIXED' ? (
+                              <>
+                                <DollarOutlined /> ${currencyFormat(promo.discountValue)} OFF
+                              </>
+                            ) : (
+                              <>
+                                {promo.discountValue} OFF
+                              </>
+                            )}
                           </Tag>
                         </div>
                         <Paragraph type="secondary">{promo.description}</Paragraph>
                       </div>
                     </div>
                   ))}
+
 
                   {discountedPrice !== null && product && (
                     <>

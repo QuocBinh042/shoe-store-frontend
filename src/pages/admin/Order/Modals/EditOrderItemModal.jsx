@@ -29,11 +29,14 @@ const EditOrderItemModal = ({
       });
       console.log("updatedItem", updatedItem)
       message.success('Order item updated successfully');
+      
+      // Wait for the reload to complete before closing modal
+      if (typeof reloadOrderDetail === 'function') {
+        await reloadOrderDetail();
+      }
+      
       form.resetFields();
       onCancel();
-      if (typeof reloadOrderDetail === 'function') {
-        reloadOrderDetail(); 
-      }
     } catch (error) {
       message.error(error?.response?.data?.message || 'Failed to update order item');
     }

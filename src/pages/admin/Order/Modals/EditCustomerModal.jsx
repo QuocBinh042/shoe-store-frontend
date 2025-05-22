@@ -1,8 +1,17 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Modal, Form, Input, Button } from 'antd';
 
 const EditCustomerModal = ({ open, onCancel, onSubmit, initialValues, disabled }) => {
   const [form] = Form.useForm();
+
+  useEffect(() => {
+    if (open) {
+      form.setFieldsValue(initialValues || {});
+    }
+    if (!open) {
+      form.resetFields();
+    }
+  }, [open, initialValues, form]);
 
   const handleSubmit = () => {
     form.validateFields().then(values => {
@@ -20,9 +29,9 @@ const EditCustomerModal = ({ open, onCancel, onSubmit, initialValues, disabled }
         <Button key="cancel" onClick={onCancel}>
           Cancel
         </Button>,
-        <Button 
-          key="submit" 
-          type="primary" 
+        <Button
+          key="submit"
+          type="primary"
           onClick={handleSubmit}
           disabled={disabled}
         >
@@ -33,11 +42,10 @@ const EditCustomerModal = ({ open, onCancel, onSubmit, initialValues, disabled }
       <Form
         form={form}
         layout="vertical"
-        initialValues={initialValues}
         disabled={disabled}
       >
         <Form.Item
-          name="name"
+          name="customerName"
           label="Customer Name"
           rules={[{ required: true, message: 'Please input customer name!' }]}
         >

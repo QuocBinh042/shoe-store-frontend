@@ -4,7 +4,6 @@ export const fetchCartItemByCartId = async (page=1,pageSize=3) => {
     return data.data
 };
 export const addCartItem = async (cartItem) => {
-    console.log(cartItem)
     const data = await postData(`cart/item/add`, cartItem);
     return data;
 };

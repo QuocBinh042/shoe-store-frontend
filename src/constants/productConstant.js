@@ -13,13 +13,13 @@ export const STATUS_PRODUCT = [
 ];
 
 export const SIZE_OPTIONS = [
-  { value: '38', label: '38' },
-  { value: '39', label: '39' },
-  { value: '40', label: '40' },
-  { value: '41', label: '41' },
-  { value: '42', label: '42' },
-  { value: '43', label: '43' },
-  { value: '44', label: '44' },
+  { value: 'SIZE_38', label: '38' },
+  { value: 'SIZE_39', label: '39' },
+  { value: 'SIZE_40', label: '40' },
+  { value: 'SIZE_41', label: '41' },
+  { value: 'SIZE_42', label: '42' },
+  { value: 'SIZE_43', label: '43' },
+  { value: 'SIZE_44', label: '44' },
 ];
 
 export const COLOR_OPTIONS = [

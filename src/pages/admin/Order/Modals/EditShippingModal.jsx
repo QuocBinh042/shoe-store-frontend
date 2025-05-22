@@ -1,8 +1,21 @@
-import React from 'react';
-import { Modal, Form, Input, Button } from 'antd';
+import React, { useEffect } from 'react';
+import { Modal, Form, Input, Button, Radio } from 'antd';
 
 const EditShippingModal = ({ open, onCancel, onSubmit, initialValues, disabled }) => {
   const [form] = Form.useForm();
+
+  useEffect(() => {
+    if (open && initialValues) {
+      form.setFieldsValue({
+        shippingAddress: initialValues.shippingAddress || '',
+        shippingMethod: initialValues.shippingMethod || 'Normal',
+        trackingNumber: initialValues.trackingNumber || '',
+      });
+    }
+    if (!open) {
+      form.resetFields();
+    }
+  }, [open, initialValues, form]);
 
   const handleSubmit = () => {
     form.validateFields().then(values => {
@@ -33,22 +46,24 @@ const EditShippingModal = ({ open, onCancel, onSubmit, initialValues, disabled }
       <Form
         form={form}
         layout="vertical"
-        initialValues={initialValues}
         disabled={disabled}
       >
         <Form.Item
-          name="address"
+          name="shippingAddress"
           label="Shipping Address"
           rules={[{ required: true, message: 'Please input shipping address!' }]}
         >
           <Input.TextArea rows={4} />
         </Form.Item>
         <Form.Item
-          name="method"
+          name="shippingMethod"
           label="Shipping Method"
-          rules={[{ required: true, message: 'Please input shipping method!' }]}
+          rules={[{ required: true, message: 'Please select shipping method!' }]}
         >
-          <Input />
+          <Radio.Group className="shipping-options">
+            <Radio value="Normal">Normal</Radio>
+            <Radio value="Express">Express</Radio>
+          </Radio.Group>
         </Form.Item>
         <Form.Item
           name="trackingNumber"
