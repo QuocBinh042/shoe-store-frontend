@@ -14,7 +14,7 @@ export const fetchOrderByUser = async (id) => {
 };
 
 export const countOrderByUser = async (id) => {
-    const data = await fetchData(`orders/users/${id}/count`);
+    const data = await fetchData(`users/${id}/delivered-orders-count`);
     return data.data;
 };
 
@@ -192,5 +192,9 @@ export const getOrderStatusHistory = async (id) => {
 };
 export const addOrderStatusHistory = async (orderStatusHistory) => {
     const data = await postData(`orders/history`, orderStatusHistory);
+    return data;
+};
+export const cancelOrder = async (cancelOrder) => {
+    const data = await postData(`orders/cancel-order`, cancelOrder);
     return data;
 };

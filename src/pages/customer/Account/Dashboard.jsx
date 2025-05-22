@@ -38,7 +38,7 @@ const UserDashboard = () => {
         };
         const fetchOrders = async (userId) => {
             const orders = await fetchOrderByUser(userId);
-            processMonthlyData(orders);
+            processMonthlyData(orders.filter(order => order.status === "DELIVERED"));
             setFilteredOrders(orders.filter(order => order.status === "SHIPPED"));
         };
         if (user?.userID) {
@@ -58,6 +58,7 @@ const UserDashboard = () => {
 
     const fetchUserInfo = async (userId) => {
         const userInfo = await fetchUserInfoById(userId);
+        console.log(userInfo.data.customerGroup)
         setUseruserInfo(userInfo.data);
     };
 
@@ -91,7 +92,7 @@ const UserDashboard = () => {
         form.validateFields().then(async (values) => {
             await updateUserInfo(userInfo.userID, values);
             setIsEditModalOpen(false);
-            fetchUserInfo(userInfo.userID); 
+            fetchUserInfo(userInfo.userID);
             notification.success({ message: 'Edit successfully!' });
         }).catch(() => {
             notification.error({ message: 'Form has errors!', description: 'Please fix the errors before submitting.' });
@@ -100,33 +101,33 @@ const UserDashboard = () => {
 
     const handlePasswordOk = () => {
         passwordForm.validateFields().then(async (values) => {
-          const { currentPassword, newPassword, confirmPassword } = values;
-          if (newPassword !== confirmPassword) {
-            notification.error({
-              message: 'Password mismatch!',
-              description: 'New password and confirmation do not match.',
-            });
-            return;
-          }
-      
-          try {
-            await authService.changePassword({ currentPassword, newPassword });
-            setIsPasswordModalOpen(false);
-            notification.success({ message: 'Password updated successfully!' });
-          } catch (error) {
-            notification.error({
-              message: 'Password update failed!',
-              description: error.response.data.message || 'Something went wrong.',
-            });
-          }
+            const { currentPassword, newPassword, confirmPassword } = values;
+            if (newPassword !== confirmPassword) {
+                notification.error({
+                    message: 'Password mismatch!',
+                    description: 'New password and confirmation do not match.',
+                });
+                return;
+            }
+
+            try {
+                await authService.changePassword({ currentPassword, newPassword });
+                setIsPasswordModalOpen(false);
+                notification.success({ message: 'Password updated successfully!' });
+            } catch (error) {
+                notification.error({
+                    message: 'Password update failed!',
+                    description: error.response.data.message || 'Something went wrong.',
+                });
+            }
         }).catch(() => {
-          notification.error({
-            message: 'Password update failed!',
-            description: 'Please ensure passwords match and meet requirements.',
-          });
+            notification.error({
+                message: 'Password update failed!',
+                description: 'Please ensure passwords match and meet requirements.',
+            });
         });
-      };
-      
+    };
+
 
     const handleCancel = (modalType) => {
         if (modalType === 'edit') setIsEditModalOpen(false);
@@ -164,14 +165,19 @@ const UserDashboard = () => {
             </Card>
 
             <Row gutter={24} className="stats-row">
-                <Col span={12}>
+                <Col span={8}>
                     <Card className="stat-card">
-                        <Statistic title="Your total order" value={quantiyOrder} prefix={<ShoppingCartOutlined />} />
+                        <Statistic title="Your successful order" value={quantiyOrder} prefix={<ShoppingCartOutlined />} />
                     </Card>
                 </Col>
-                <Col span={12}>
+                <Col span={8}>
                     <Card className="stat-card">
                         <Statistic title="Total amount spent" value={amount} prefix={<DollarOutlined />} suffix="đ" />
+                    </Card>
+                </Col>
+                <Col span={8}>
+                    <Card className="stat-card">
+                        <Statistic title="Customer Rank" value={userInfo.customerGroup || 'NEW'} prefix={<UserOutlined />} />
                     </Card>
                 </Col>
             </Row>

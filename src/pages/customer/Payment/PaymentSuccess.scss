@@ -1,0 +1,91 @@
+.payment-result {
+    .ant-card {
+      border-radius: 1rem;
+      overflow: hidden;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+  
+      &:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+      }
+  
+      .ant-result {
+        padding: 2rem;
+  
+        .ant-result-icon {
+          margin-bottom: 1rem;
+        }
+  
+        .ant-result-title {
+          margin: 0 0 0.5rem;
+        }
+  
+        .ant-result-subtitle {
+          margin-bottom: 1.5rem;
+        }
+  
+        .ant-result-extra {
+          display: flex;
+          gap: 1rem;
+          justify-content: center;
+  
+          .ant-btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            transition: background 0.3s ease, transform 0.2s ease;
+  
+            &:hover {
+              transform: translateY(-2px);
+            }
+  
+            &.ant-btn-primary {
+              background: #2563eb;
+            }
+  
+            &.bg-gray-200 {
+              color: #1f2937;
+            }
+          }
+        }
+      }
+  
+      .ant-card {
+        margin-top: 1.5rem;
+        border: none;
+        background: #f9fafb;
+  
+        .ant-typography {
+          margin: 0.5rem 0;
+        }
+      }
+    }
+  
+    .ant-spin {
+      padding: 2rem;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .payment-result {
+      .ant-card {
+        .ant-result {
+          padding: 1.5rem;
+  
+          .ant-result-extra {
+            flex-direction: column;
+            gap: 0.75rem;
+  
+            .ant-btn {
+              width: 100%;
+            }
+          }
+        }
+  
+        .ant-card {
+          margin-top: 1rem;
+          padding: 1rem;
+        }
+      }
+    }
+  }

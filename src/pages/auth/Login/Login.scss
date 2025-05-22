@@ -1,0 +1,125 @@
+.login-card {
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+    padding: 40px;
+    background: #ffffff;
+    text-align: center;
+    transition: transform 0.3s ease;
+  
+    &:hover {
+      transform: translateY(-5px);
+    }
+  
+    .login-title {
+      margin-bottom: 30px;
+      color: #1a1a1a;
+      font-weight: 700;
+    }
+  
+    .login-form {
+      .login-input {
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 16px;
+        border-color: #d9d9d9;
+        transition: border-color 0.3s ease;
+  
+        &:focus {
+          border-color: #1890ff;
+          box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+      }
+  
+      .login-button {
+        background: #1890ff;
+        border: none;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        transition: background 0.3s ease;
+  
+        &:hover {
+          background: #096dd9;
+        }
+  
+        &.ant-btn-loading {
+          background: #096dd9;
+        }
+      }
+  
+      .forgot-password {
+        color: #1890ff;
+        text-align: left;
+        padding: 8px 0;
+        font-size: 14px;
+        transition: color 0.3s ease;
+  
+        &:hover {
+          color: #096dd9;
+          text-decoration: underline;
+        }
+      }
+  
+      .back-button {
+        background: #f0f2f5;
+        border: none;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #1a1a1a;
+        margin-top: 10px;
+        transition: background 0.3s ease;
+  
+        &:hover {
+          background: #e6e8eb;
+          color: #1a1a1a;
+        }
+      }
+  
+      .signup-text {
+        display: block;
+        margin-top: 20px;
+        font-size: 14px;
+        color: #1a1a1a;
+  
+        a {
+          color: #1890ff;
+          transition: color 0.3s ease;
+  
+          &:hover {
+            color: #096dd9;
+            text-decoration: underline;
+          }
+        }
+      }
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .login-card {
+      padding: 20px;
+      margin: 0 10px;
+  
+      .login-title {
+        font-size: 24px;
+      }
+  
+      .login-form {
+        .login-input {
+          font-size: 14px;
+        }
+  
+        .login-button,
+        .back-button {
+          font-size: 14px;
+          padding: 10px;
+        }
+  
+        .signup-text {
+          font-size: 12px;
+        }
+      }
+    }
+  }

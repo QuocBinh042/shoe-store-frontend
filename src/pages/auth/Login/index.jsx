@@ -5,7 +5,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import { authService } from "../../../services/authService";
 import { setUser } from "../../../redux/accountSlice";
-
+import "./Login.scss"
 const { Title, Text } = Typography;
 
 const LoginPage = () => {
@@ -73,18 +73,19 @@ const LoginPage = () => {
       setLoading(false);
     }
   };
+
   return (
-    <Row justify="center" align="middle" style={{ height: "80vh" }}>
-      <Col xs={24} sm={18} md={12} lg={8}>
-        <Card bordered={false} style={{ boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)" }}>
-          <Title level={2} style={{ textAlign: "center" }}>Login</Title>
-          <Form name="login" onFinish={onFinish} layout="vertical">
+    <Row justify="center" align="middle" style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f5f7fa 0%, #e4e9f0 100%)" }}>
+      <Col xs={22} sm={18} md={12} lg={6}>
+        <Card bordered={false} className="login-card">
+          <Title level={2} className="login-title">Login</Title>
+          <Form name="login" onFinish={onFinish} layout="vertical" className="login-form">
             <Form.Item
               name="email"
               label="Email address"
               rules={[{ required: true, message: "Please input your email address!" }]}
             >
-              <Input prefix={<UserOutlined />} placeholder="Enter your email address" />
+              <Input prefix={<UserOutlined />} placeholder="Enter your email address" className="login-input" />
             </Form.Item>
 
             <Form.Item
@@ -92,20 +93,23 @@ const LoginPage = () => {
               label="Password"
               rules={[{ required: true, message: "Please input your password!" }]}
             >
-              <Input.Password prefix={<LockOutlined />} placeholder="Enter your password" />
+              <Input.Password prefix={<LockOutlined />} placeholder="Enter your password" className="login-input" />
             </Form.Item>
             <Form.Item>
-              <Button type="primary" block htmlType="submit" loading={loading}>
+              <Button type="primary" block htmlType="submit" loading={loading} className="login-button">
                 Login
               </Button>
             </Form.Item>
+            <Button type="link" block className="forgot-password" onClick={() => navigate("/forgot-password")}>
+              Forgot Password?
+            </Button>
+            <Button type="default" block className="back-button" onClick={() => navigate("/")}>
+              Back to Home
+            </Button>
+            <Text className="signup-text">
+              Don't have an account? <a href="/sign-up">Sign up here</a>
+            </Text>
           </Form>
-          <Button type="default" block onClick={() => navigate("/")}>
-            Back to Home
-          </Button>
-          <Text style={{ display: "block", textAlign: "center", marginTop: "16px" }}>
-            Don't have an account? <a href="/sign-up">Sign up here</a>
-          </Text>
         </Card>
       </Col>
     </Row>

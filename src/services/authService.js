@@ -1,6 +1,7 @@
 import { postData, apiClient } from "./apiService";
 import { doLogoutAction } from "../redux/accountSlice";
 import store from "../redux/store";
+import { em } from "framer-motion/client";
 
 const ACCESS_TOKEN_KEY = "accessToken";
 
@@ -43,6 +44,20 @@ const verifyOtp = async ({ email, otp }) => {
     throw error;
   }
 };
+const resetPassword = async ({ email, otp, newPassword }) => {
+  console.log(email,otp,newPassword)
+  try {
+    const response = await apiClient.post("/auth/reset-password", {
+      email,
+      otp,
+      newPassword,
+    });
+    console.log(response.data)
+    return response.data;
+  } catch (error) {
+    throw error;
+  }
+};
 
 const resendOtp = async (email) => {
   try {
@@ -54,7 +69,16 @@ const resendOtp = async (email) => {
     throw error;
   }
 };
-
+const sendOTPForgotPassword = async (email) => {
+  try {
+    const data = await apiClient.post("/auth/sendOTP-forgot-password", null, {
+      params: { email },
+    });
+    return data;
+  } catch (error) {
+    throw error;
+  }
+};
 const logout = async () => {
   try {
     await apiClient.post("/auth/logout");
@@ -108,5 +132,7 @@ export const authService = {
   verifyOtp,
   resendOtp,
   checkEmail,
-  changePassword
+  changePassword,
+  sendOTPForgotPassword,
+  resetPassword
 };

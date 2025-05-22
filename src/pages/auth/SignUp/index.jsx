@@ -1,10 +1,12 @@
 import React, { useState, useCallback } from "react";
-import { Form, Input, Button, Typography, Row, Col, Card, message ,Spin} from "antd";
+import { Form, Input, Button, Typography, Row, Col, Card, message, Spin } from "antd";
 import { UserOutlined, MailOutlined, LockOutlined, PhoneOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { authService } from "../../../services/authService";
 import { addCart } from "../../../services/cartService";
 import debounce from "lodash/debounce";
+import { motion } from "framer-motion";
+
 const { Title, Text } = Typography;
 
 const SignUpPage = () => {
@@ -31,6 +33,7 @@ const SignUpPage = () => {
     }, 500),
     []
   );
+
   const onFinish = async (values) => {
     setLoading(true);
     try {
@@ -62,80 +65,86 @@ const SignUpPage = () => {
     }
   };
 
-
-
   return (
-    <Row justify="center" align="middle" style={{ height: "100vh", backgroundColor: "#f4f6f9" }}>
-      <Col xs={22} sm={16} md={12} lg={10}>
-        <Card bordered={false} style={{ borderRadius: "10px", padding: "20px", boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)" }}>
-          <Title level={3} style={{ textAlign: "center", marginBottom: "12px" }}>Create Account</Title>
-          <Form name="signup" onFinish={onFinish} layout="vertical">
-            <Form.Item name="name" rules={[{ required: true, message: "Enter full name!" }]}>
-              <Input prefix={<UserOutlined />} placeholder="Full Name" />
-            </Form.Item>
+    <Row justify="center" align="middle" style={{ minHeight: "100vh", background: "linear-gradient(135deg, #f5f7fa 0%, #e4e9f0 100%)" }}>
+      <Col xs={22} sm={20} md={16} lg={10}>
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card bordered={false} className="signup-card">
+            <Title level={3} className="signup-title">Register an account</Title>
+            <Form name="signup" onFinish={onFinish} layout="vertical" className="signup-form">
+              <Form.Item name="name" rules={[{ required: true, message: "Enter full name!" }]}>
+                <Input prefix={<UserOutlined />} placeholder="Full Name" size="large" className="signup-input" />
+              </Form.Item>
 
-            <Row gutter={12}>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="email"
-                  rules={[
-                    { required: true, type: "email", message: "Invalid email format!" },
-                    {
-                      validator: (_, value) =>
-                        new Promise((resolve, reject) => {
-                          if (!value) return resolve();
-                          checkEmailExists(value, resolve, reject);
-                        }),
-                    },
-                  ]}
-                >
-                  <Input
-                    prefix={<MailOutlined />}
-                    placeholder="Email"
-                    suffix={emailLoading ? <Spin size="small" /> : null}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item name="phoneNumber" rules={[{ required: true, pattern: /^[0-9]{10}$/, message: "Invalid phone!" }]}>
-                  <Input prefix={<PhoneOutlined />} placeholder="Phone" />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={12}>
-              <Col xs={24} sm={12}>
-                <Form.Item name="password" rules={[{ required: true, message: "Enter password!" }]}>
-                  <Input.Password prefix={<LockOutlined />} placeholder="Password" />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12}>
-                <Form.Item
-                  name="confirmPassword"
-                  dependencies={["password"]}
-                  rules={[
-                    { required: true, message: "Confirm password!" },
-                    ({ getFieldValue }) => ({
-                      validator(_, value) {
-                        return value === getFieldValue("password") ? Promise.resolve() : Promise.reject("Passwords do not match!");
+              <Row gutter={24}>
+                <Col xs={24} sm={12}>
+                  <Form.Item
+                    name="email"
+                    rules={[
+                      { required: true, type: "email", message: "Invalid email format!" },
+                      {
+                        validator: (_, value) =>
+                          new Promise((resolve, reject) => {
+                            if (!value) return resolve();
+                            checkEmailExists(value, resolve, reject);
+                          }),
                       },
-                    }),
-                  ]}
-                >
-                  <Input.Password prefix={<LockOutlined />} placeholder="Confirm Password" />
-                </Form.Item>
-              </Col>
-            </Row>
+                    ]}
+                  >
+                    <Input
+                      prefix={<MailOutlined />}
+                      placeholder="Email"
+                      suffix={emailLoading ? <Spin size="small" /> : null}
+                      size="large"
+                      className="signup-input"
+                    />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="phoneNumber" rules={[{ required: true, pattern: /^[0-9]{10}$/, message: "Invalid phone!" }]}>
+                    <Input prefix={<PhoneOutlined />} placeholder="Phone" size="large" className="signup-input" />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-            <Button type="primary" block htmlType="submit" loading={loading} style={{ borderRadius: "6px" }}>
-              Sign Up
-            </Button>
+              <Row gutter={24}>
+                <Col xs={24} sm={12}>
+                  <Form.Item name="password" rules={[{ required: true, message: "Enter password!" }]}>
+                    <Input.Password prefix={<LockOutlined />} placeholder="Password" size="large" className="signup-input" />
+                  </Form.Item>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <Form.Item
+                    name="confirmPassword"
+                    dependencies={["password"]}
+                    rules={[
+                      { required: true, message: "Confirm password!" },
+                      ({ getFieldValue }) => ({
+                        validator(_, value) {
+                          return value === getFieldValue("password") ? Promise.resolve() : Promise.reject("Passwords do not match!");
+                        },
+                      }),
+                    ]}
+                  >
+                    <Input.Password prefix={<LockOutlined />} placeholder="Confirm Password" size="large" className="signup-input" />
+                  </Form.Item>
+                </Col>
+              </Row>
 
-            <Text style={{ display: "block", textAlign: "center", marginTop: "12px" }}>
-              Already have an account? <a href="/login">Login</a>
-            </Text>
-          </Form>
-        </Card>
+              <Button type="primary" block htmlType="submit" loading={loading} className="signup-button">
+                Sign Up
+              </Button>
+
+              <Text className="signup-text">
+                Already have an account? <a href="/login">Login</a>
+              </Text>
+            </Form>
+          </Card>
+        </motion.div>
       </Col>
     </Row>
   );

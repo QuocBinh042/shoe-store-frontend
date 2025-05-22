@@ -1,17 +1,88 @@
+.search-layout {
+  background: #f5f5f5;
+  min-height: 100vh;
+  padding: 20px 40px;
+
+  @media (max-width: 768px) {
+    padding: 10px;
+  }
+
+  .main-layout {
+    background: transparent;
+  }
+
+  .header-wrapper {
+    margin-bottom: 20px;
+    padding: 0;
+  }
+
+  .content-layout {
+    display: flex;
+    gap: 20px;
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .sider {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      padding: 20px;
+      max-height: 700px;
+      overflow-y: auto;
+      position: sticky;
+      top: 20px;
+      margin-right: 0; // Loại bỏ margin-right để thẳng hàng
+
+      &::-webkit-scrollbar {
+        width: 6px;
+      }
+
+      &::-webkit-scrollbar-thumb {
+        background-color: #888;
+        border-radius: 4px;
+      }
+
+      @media (max-width: 768px) {
+        position: static;
+        max-height: none;
+        padding: 15px;
+        margin-right: 0;
+      }
+    }
+
+    .content {
+      flex: 1;
+      padding: 0;
+
+      @media (max-width: 768px) {
+        padding: 0;
+      }
+
+      .loading-spinner {
+        display: flex;
+        justify-content: center;
+        padding: 50px;
+      }
+    }
+  }
+}
+
 .custom-collapse {
   border-radius: 0px;
   border: 1px solid white;
-  width: "100%";
   background: white;
-}
 
-.filters {
   .ant-collapse-header-text {
     display: flex;
     justify-content: space-between;
     align-items: center;
   }
+}
 
+.filters {
   &__panel {
     .ant-collapse-header {
       font-size: 18px;
@@ -74,32 +145,14 @@
     align-items: center;
     cursor: pointer;
     transition: all 0.3s ease;
-  }
 
-  &__sizes-item.selected {
-    border-color: #1890ff;
-    background-color: #e6f7ff;
-  }
+    &.selected {
+      border-color: #1890ff;
+      background-color: #e6f7ff;
+    }
 
-  &__sizes-item:hover {
-    border-color: #40a9ff;
-  }
-}
-
-.sider {
-  background: white;
-  max-height: 700px;
-  overflow-y: auto;
-  position: sticky;
-  top: 0;
-  margin-right: 20px;
-
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background-color: #888;
-    border-radius: 4px;
+    &:hover {
+      border-color: #40a9ff;
+    }
   }
 }

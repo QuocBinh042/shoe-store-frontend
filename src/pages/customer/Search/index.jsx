@@ -2,12 +2,11 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Layout, Spin } from 'antd';
 import Filters from './Filters';
 import ProductGrid from './ProductGrid';
-import "./Search.scss";
-import { Header } from 'antd/es/layout/layout';
 import ResultsHeader from './ResultHeader';
 import { fetchAllProducts, fetchFilteredProducts } from '../../../services/searchService';
 import { debounce } from 'lodash';
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams } from 'react-router-dom';
+import './Search.scss';
 
 const { Sider, Content } = Layout;
 
@@ -27,7 +26,6 @@ const Search = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const initialPage = parseInt(searchParams.get("page")) || 1;
   const [currentPage, setCurrentPage] = useState(initialPage);
-
   const [totalProducts, setTotalProducts] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -40,11 +38,11 @@ const Search = () => {
       loadAllProducts(currentPage);
     }
   }, [currentPage]);
+
   useEffect(() => {
     const page = parseInt(searchParams.get("page")) || 1;
     setCurrentPage(page);
   }, [searchParams]);
-
 
   const loadAllProducts = async (page) => {
     setLoading(true);
@@ -70,7 +68,6 @@ const Search = () => {
     }
   };
 
-
   const handleFilterChange = useCallback(
     async (newFilters, page = currentPage) => {
       setLoading(true);
@@ -78,7 +75,7 @@ const Search = () => {
         ...filtersRef.current,
         ...newFilters,
         sortBy: newFilters.sortBy ?? filtersRef.current.sortBy,
-        keyword: newFilters.keyword ?? filtersRef.current.keyword
+        keyword: newFilters.keyword ?? filtersRef.current.keyword,
       };
 
       filtersRef.current = updatedFilters;
@@ -132,9 +129,9 @@ const Search = () => {
   };
 
   return (
-    <Layout>
-      <Layout style={{ padding: '20px 100px' }}>
-        <Header style={{ padding: 0, marginBottom: 10 }}>
+    <Layout className="search-layout">
+      <Layout className="main-layout">
+        <div className="header-wrapper">
           <ResultsHeader
             resultsCount={totalProducts}
             keyword={searchTerm}
@@ -142,14 +139,14 @@ const Search = () => {
             onSortChange={handleSortChange}
             currentSort={filters.sortBy}
           />
-        </Header>
-        <Layout>
-          <Sider width={280} className='sider'>
+        </div>
+        <Layout className="content-layout">
+          <Sider width={280} className="sider">
             <Filters onFilterChange={handleFilterChange} />
           </Sider>
-          <Content style={{ padding: 0, marginTop: 10 }}>
+          <Content className="content">
             {loading ? (
-              <div style={{ display: "flex", justifyContent: "center", padding: "50px" }}>
+              <div className="loading-spinner">
                 <Spin size="large" />
               </div>
             ) : (

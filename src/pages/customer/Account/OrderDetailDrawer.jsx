@@ -1,15 +1,19 @@
-import { Modal, Button, Rate, Tag, Image, Tooltip, Divider, Drawer, message } from "antd";
+import { Modal, Button, Rate, Tag, Image, Tooltip, Divider, Drawer, message, Row, Col } from "antd";
 import { EditOutlined, GiftOutlined } from "@ant-design/icons";
 import React, { useState, useEffect, useCallback } from "react";
 import { fetchReviewByOrderDetail, addReview } from "../../../services/reviewService";
 import { getVnPayUrl } from "../../../services/paymentService";
 import { useSelector } from "react-redux";
+import { cancelOrder } from "../../../services/orderService";
 
-function OrderDetailDrawer({ isOpen, onClose, order }) {
+function OrderDetailDrawer({ isOpen, onClose, order, reloadOrders }) {
   const [reviews, setReviews] = useState({});
   const [selectedReview, setSelectedReview] = useState(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [newReview, setNewReview] = useState({ visible: false, detailId: null, rating: 0, comment: "" });
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [otherReason, setOtherReason] = useState("");
   const user = useSelector((state) => state.account.user);
 
   useEffect(() => {
@@ -34,6 +38,7 @@ function OrderDetailDrawer({ isOpen, onClose, order }) {
   const openAddReviewModal = (detailId) => {
     setNewReview({ visible: true, detailId, rating: 0, comment: "" });
   };
+
   const handlePayment = async (totalCost, orderCode) => {
     try {
       const vnPayResponse = await getVnPayUrl(totalCost, orderCode);
@@ -79,6 +84,55 @@ function OrderDetailDrawer({ isOpen, onClose, order }) {
     return order?.details?.reduce((sum, item) => sum + item.price * item.quantity, 0) || 0;
   }, [order]);
 
+  const openCancelModal = () => {
+    setIsCancelModalOpen(true);
+  };
+
+  const handleCancelOrder = async () => {
+    let finalReason = cancelReason;
+
+    if (cancelReason === "Other") {
+      if (!otherReason.trim()) {
+        message.warning("Please enter a reason for cancellation.");
+        return;
+      }
+      finalReason = otherReason; 
+    } else if (!cancelReason.trim()) {
+      message.warning("Please select a reason for canceling the order.");
+      return;
+    }
+
+    try {
+      const cancelPayload = {
+        orderId: order.id,
+        userId: user.userID,
+        reason: finalReason, 
+      };
+      const response = await cancelOrder(cancelPayload);
+    
+      if (response.statusCode === 200) {
+        message.success("Order cancellation successful");
+        setIsCancelModalOpen(false);
+        setCancelReason("");
+        setOtherReason(""); 
+        await reloadOrders(user.userID);
+        onClose();
+      } else {
+        message.error(response?.message || "Order cancellation failed.");
+        console.error("Cancel order failed:", response);
+      }
+    } catch (error) {
+      console.error("Cancel order error:", error);
+      message.error("An error occurred while canceling the order.");
+    }
+  };
+
+  const handleCancelModalClose = () => {
+    setIsCancelModalOpen(false);
+    setCancelReason("");
+    setOtherReason(""); 
+  };
+
   if (!order) return null;
 
   return (
@@ -97,6 +151,21 @@ function OrderDetailDrawer({ isOpen, onClose, order }) {
           <p style={{ fontSize: "14px", color: "#666" }}>{order.phone}</p>
         </div>
       </div>
+
+      {order.status === "CANCELED" && order.cancelReason && (
+        <div style={{ marginBottom: 30 }}>
+          <h4 style={{ fontSize: "18px", color: "#333", marginBottom: "10px" }}>Cancellation Reason</h4>
+          <div style={{ 
+            backgroundColor: "#fff", 
+            padding: "15px", 
+            borderRadius: "8px", 
+            boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+            borderLeft: "4px solid #ff4d4f"
+          }}>
+            <p style={{ fontSize: "14px", color: "#666" }}>{order.cancelReason}</p>
+          </div>
+        </div>
+      )}
 
       <div style={{ marginBottom: 20 }}>
         <h3 style={{ fontSize: "18px", color: "#333", marginBottom: "15px", borderBottom: "2px solid #1890ff", paddingBottom: "5px", display: "inline-block" }}>
@@ -245,16 +314,42 @@ function OrderDetailDrawer({ isOpen, onClose, order }) {
           </div>
         </div>
       </div>
-      {order.paymentStatus === "PENDING" && order.paymentMethod === "VNPAY" && (
+      {(order.paymentStatus === "PENDING" && order.paymentMethod === "VNPAY" && order.status === "PENDING") && (
+        <div style={{ textAlign: "center", marginTop: 20 }}>
+          <Row gutter={16} justify="center">
+            <Col>
+              <Button
+                type="primary"
+                size="large"
+                onClick={() => handlePayment(order.total, order.code)}
+              >
+                Make payment
+              </Button>
+            </Col>
+            <Col>
+              <Button
+                type="primary"
+                danger
+                size="large"
+                onClick={openCancelModal}
+                style={{ backgroundColor: "#ff4d4f", borderColor: "#ff4d4f" }}
+              >
+                Cancel order
+              </Button>
+            </Col>
+          </Row>
+        </div>
+      )}
+      {order.status === "PENDING" && order.paymentStatus === "PENDING" && !(order.paymentMethod === "VNPAY") && (
         <div style={{ textAlign: "center", marginTop: 20 }}>
           <Button
             type="primary"
             size="large"
-            onClick={() => handlePayment(order.total, order.code)}
+            onClick={openCancelModal}
+            style={{ backgroundColor: "#ff4d4f", borderColor: "#ff4d4f" }}
           >
-            Make payment
+            Cancel order
           </Button>
-
         </div>
       )}
 
@@ -314,6 +409,62 @@ function OrderDetailDrawer({ isOpen, onClose, order }) {
           >
             Submit Review
           </Button>
+        </div>
+      </Modal>
+
+      <Modal
+        title={<span style={{ fontSize: "16px", color: "#333" }}>Cancel order</span>}
+        open={isCancelModalOpen}
+        onCancel={handleCancelModalClose}
+        onOk={handleCancelOrder}
+        okText="Confirm Cancellation"
+        cancelText="Cancel"
+      >
+        <div>
+          <h4 style={{ fontSize: "14px", color: "#666", marginBottom: "10px" }}>Select reason for cancellation:</h4>
+          <select
+            value={cancelReason}
+            onChange={(e) => {
+              setCancelReason(e.target.value);
+              if (e.target.value !== "Other") {
+                setOtherReason(""); 
+              }
+            }}
+            style={{
+              width: "100%",
+              height: "40px",
+              padding: "5px 10px",
+              borderRadius: "6px",
+              border: "1px solid #d9d9d9",
+              fontSize: "14px",
+              color: "#333",
+              marginBottom: "15px",
+            }}
+          >
+            <option value="">Select reason</option>
+            <option value="Change my mind">Change my mind</option>
+            <option value="Product not suitable">Product not suitable</option>
+            <option value="Unreasonable price">Unreasonable price</option>
+            <option value="Other">Other</option>
+          </select>
+          {cancelReason === "Other" && (
+            <textarea
+              placeholder="Please enter other reason..."
+              value={otherReason}
+              onChange={(e) => setOtherReason(e.target.value)}
+              style={{
+                width: "100%",
+                height: "80px",
+                padding: "10px",
+                borderRadius: "6px",
+                border: "1px solid #d9d9d9",
+                fontSize: "14px",
+                color: "#333",
+                resize: "none",
+                marginBottom: "15px",
+              }}
+            />
+          )}
         </div>
       </Modal>
     </Drawer>

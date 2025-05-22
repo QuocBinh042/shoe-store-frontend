@@ -136,20 +136,40 @@
     }
   }
 
-  .pay-now-button {
-    width: 100%;
-    background: #2f54eb;
-    border: none;
-    color: #ffffff;
-    font-size: 16px;
-    font-weight: 600;
-    border-radius: 8px;
-    padding: 12px 0;
-    transition: background 0.3s ease;
-
-    &:hover {
-      background: #1a1a1a;
+  .step-content {
+    .back-button {
+      width: 100%;
+      background: #6c757d;
+      border: none;
       color: #ffffff;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      padding: 12px 0;
+      margin-bottom: 10px;
+      transition: background 0.3s ease;
+
+      &:hover {
+        background: #5a6268;
+        color: #ffffff;
+      }
+    }
+
+    .pay-now-button {
+      width: 100%;
+      background: #2f54eb;
+      border: none;
+      color: #ffffff;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 8px;
+      padding: 12px 0;
+      transition: background 0.3s ease;
+
+      &:hover {
+        background: #1a1a1a;
+        color: #ffffff;
+      }
     }
   }
 }

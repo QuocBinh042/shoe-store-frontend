@@ -7,7 +7,7 @@ import AddressAddForm from "../Account/AddressAddForm";
 import GiftSelectionForm from "./GiftSelectionForm";
 import { useLocation, useNavigate } from "react-router-dom";
 import { fetchProductDetailById, fetchProductDetailByProductId } from "../../../services/productDetailService";
-import { addOrder,addOrderStatusHistory } from "../../../services/orderService";
+import { addOrder, addOrderStatusHistory } from "../../../services/orderService";
 import { addOrderDetails } from "../../../services/orderDetailService";
 import logoVNPAY from '../../../assets/images/logos/vnpay_logo.png';
 import { addPayment, getVnPayUrl } from "../../../services/paymentService";
@@ -41,7 +41,7 @@ const Checkout = () => {
   const [giftSelections, setGiftSelections] = useState({});
   const [giftProductVariants, setGiftProductVariants] = useState([]);
   const [currentGiftItem, setCurrentGiftItem] = useState(null);
-  console.log(selectedItems)
+
   const formatCurrency = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 
   const { totalCost, discount, shippingCost, subtotal } = useMemo(() => {
@@ -66,6 +66,7 @@ const Checkout = () => {
       subtotal,
     };
   }, [productDetails, selectedVoucher, shippingMethod]);
+
   useEffect(() => {
     const recentOrder = localStorage.getItem('recentOrder');
     if (recentOrder) {
@@ -80,7 +81,7 @@ const Checkout = () => {
         ),
         okText: "View Order",
         onOk: () => {
-          navigate(`/account`)
+          navigate(`/account`);
           localStorage.removeItem('recentOrder');
         },
         onCancel: () => {
@@ -90,6 +91,7 @@ const Checkout = () => {
       });
     }
   }, [navigate]);
+
   useEffect(() => {
     if (user?.userID) {
       fetchAddresses(user.userID);
@@ -115,7 +117,7 @@ const Checkout = () => {
   useEffect(() => {
     const fetchVouchers = async () => {
       try {
-        const response = await fetchVoucherWithPrice(totalCost);
+        const response = await fetchVoucherWithPrice(user.userID, totalCost);
         setVouchers(response || []);
       } catch (error) {
         console.error("Error fetching vouchers:", error);
@@ -254,7 +256,7 @@ const Checkout = () => {
         );
         await Promise.all(
           selectedItems
-            .filter(item => item.cartItemID) 
+            .filter(item => item.cartItemID)
             .map(async (item) => {
               try {
                 await deleteCartItem(item.cartItemID);
@@ -271,22 +273,20 @@ const Checkout = () => {
           const vnPayResponse = await getVnPayUrl(totalCost, orderCode);
           vnPayUrl = vnPayResponse.paymentUrl;
         }
-        const orderStatusHistory={
-          order:{orderID:orderID},
-          status:"PENDING",
-          changeAt:new Date().toISOString().split("T")[0],
-          trackingNumber:null,
-          cancelReason:null,
-          changedBy:{userID:user.userID}
-        }
-        await addOrderStatusHistory(orderStatusHistory)
-
+        const orderStatusHistory = {
+          order: { orderID: orderID },
+          status: "PENDING",
+          changeAt: new Date().toISOString().split("T")[0],
+          trackingNumber: null,
+          cancelReason: null,
+          changedBy: { userID: user.userID }
+        };
+        await addOrderStatusHistory(orderStatusHistory);
 
         setModalData({
           transactionDate: new Date().toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" }),
           paymentMethod: paymentMethod === "VNPAY" ? "VNPAY" : "CASH",
           shippingMethod: shippingMethod === "Express" ? "Express delivery (1-3 days)" : "Normal delivery (3-5 days)",
-          
           products: productDetails,
           ...(Object.keys(giftSelections).length > 0 && {
             gifts: Object.values(giftSelections).map(gift => ({
@@ -457,9 +457,15 @@ const Checkout = () => {
     {
       title: "Confirm Order",
       content: (
-        <Button className="pay-now-button" onClick={createOrder}>
-          Pay Now
-        </Button>
+        <div className="step-content">
+
+          <Button className="pay-now-button" onClick={createOrder}>
+            Pay Now
+          </Button>
+          <Button className="back-button" onClick={() => navigate(-1)}>
+            Back
+          </Button>
+        </div>
       ),
     },
   ];

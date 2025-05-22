@@ -1,6 +1,6 @@
 import { fetchData,postData,deleteData ,putData} from './apiService'
-export const fetchVoucherWithPrice = async (value) => {
-    const data = await fetchData(`voucher/eligible?orderValue=${value}`);
+export const fetchVoucherWithPrice = async (userId, orderValue) => {
+    const data = await fetchData(`voucher/eligible?userId=${userId}&orderValue=${orderValue}`);
     return data.data;
 };
 export const fetchVoucherById = async (id) => {

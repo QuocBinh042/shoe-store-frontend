@@ -6,7 +6,7 @@ import OrderSuccess from "../pages/customer/Order";
 import Checkout from "../pages/customer/Checkout";
 import Search from "../pages/customer/Search";
 import Error from "../pages/error";
-import PaymentResult from "../pages/customer/Payment";
+import PaymentResult from "../pages/customer/Payment/PaymentSuccess";
 import Login from "../pages/auth/Login";
 import SignUp from "../pages/auth/SignUp";
 import ProductDetail from "../pages/customer/ProductDetail";
@@ -27,6 +27,8 @@ import CustomerManager from "../pages/admin/Customer";
 import CustomerDetail from "../pages/admin/Customer/CustomerDetails";
 import ProductForm from "../pages/admin/Product/Form/ProductForm";
 import VerifyOtpPage from "../pages/auth/VerifyOtpPage";
+import ForgotPasswordPage from "../pages/auth/ForgotPassword/ForgotPasswordPage";
+import VerifyOtpResetPasswordPage from "../pages/auth/ForgotPassword/VerifyOtpResetPasswordPage";
 import AdminRoute from "../components/PrivateRoutes/AdminRoute";
 export const routes = [
   {
@@ -70,6 +72,12 @@ export const routes = [
   },
   {
     path: "/verify-otp", element: <VerifyOtpPage/> ,
+  },
+  {
+    path: "/verify-otp-forgot-pasword", element: <VerifyOtpResetPasswordPage/> ,
+  },
+  {
+    path: "/forgot-password", element: <ForgotPasswordPage/> ,
   },
   { path: "/sign-up", element: <SignUp /> },
   {

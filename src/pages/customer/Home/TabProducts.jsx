@@ -2,20 +2,7 @@ import React, { useState, useEffect } from "react";
 import { fetchNewArrivals, fetchBestSeller } from "../../../services/productService";
 import { useNavigate } from "react-router-dom";
 import { Card, Image, Badge, Tooltip, Button,Carousel,Tabs } from "antd";
-import { HeartOutlined, ShoppingCartOutlined } from "@ant-design/icons";
 const CLOUDINARY_BASE_URL = process.env.REACT_APP_CLOUDINARY_PRODUCT_IMAGE_BASE_URL;
-const trendingData = [
-  {
-    id: 4,
-    image: "../images/product4.jpg",
-    name: "Trending Shoes",
-    category: "Shoes",
-    price: "$50.00",
-    oldPrice: "$75.00",
-    discount: "-33%",
-  },
-];
-
 const mapProductData = (product) => {
   return {
     id: product.productID,
@@ -183,8 +170,6 @@ const TabProducts = () => {
       products = bestsellers;
     } else if (tabKey === "new-arrivals") {
       products = newArrivals;
-    } else if (tabKey === "trending") {
-      products = trendingData;
     }
 
     return (
@@ -209,7 +194,6 @@ const TabProducts = () => {
       items={[
         { key: "bestsellers", label: "Best Sellers", children: tabContent("bestsellers") },
         { key: "new-arrivals", label: "New Arrivals", children: tabContent("new-arrivals") },
-        { key: "trending", label: "Trending", children: tabContent("trending") },
       ]}
     />
   );
