@@ -232,7 +232,7 @@ const OrderDetail = () => {
               feeShip={mappedOrderData.totals.feeShip}
               total={mappedOrderData.totals.total}
               onEditItem={handleEditItem}
-              editable={isPending && !isDelivered}
+              editable={isPending && order.status !== 'DELIVERED' && order.status !== 'SHIPPED'}
             />
           </Col>
 
@@ -242,14 +242,14 @@ const OrderDetail = () => {
               order={order}
               orderID={orderID}
               onOrderUpdated={fetchData}
-              disabled={isDelivered}
+              disabled={order.status === 'DELIVERED' || order.status === 'SHIPPED'}
               onEdit={() => setCustomerModalOpen(true)}
-              editable={isPending && !isDelivered}
+              editable={isPending && order.status !== 'DELIVERED' && order.status !== 'SHIPPED'}
             />
             <ShippingInfo
               {...mappedOrderData.shipping}
               onEdit={() => setEditShippingModalOpen(true)}
-              editable={isPending && !isDelivered}
+              editable={isPending && order.status !== 'DELIVERED' && order.status !== 'SHIPPED'}
             />
           </Col>
         </Row>
@@ -272,10 +272,8 @@ const OrderDetail = () => {
         onSubmit={handleUpdateCustomer}
         initialValues={{
           customerName: mappedOrderData.customer.customerName,
-          email: mappedOrderData.customer.email,
-          phone: mappedOrderData.customer.phone,
         }}
-        disabled={isDelivered}
+        disabled={order.status === 'DELIVERED' || order.status === 'SHIPPED'}
       />
 
       <EditShippingModal
@@ -287,7 +285,7 @@ const OrderDetail = () => {
           shippingMethod: mappedOrderData.shipping.shippingMethod,
           trackingNumber: mappedOrderData.shipping.trackingNumber
         }}
-        disabled={isDelivered}
+        disabled={order.status === 'DELIVERED' || order.status === 'SHIPPED'}
       />
 
       <EditOrderItemModal
@@ -297,7 +295,7 @@ const OrderDetail = () => {
         initialValues={editingItem}
         colorOptions={COLOR_OPTIONS.map(opt => opt.value)}
         sizeOptions={SIZE_OPTIONS.map(opt => opt.value)}
-        disabled={isDelivered}
+        disabled={order.status === 'DELIVERED' || order.status === 'SHIPPED'}
         orderDetailId={editingItem?.orderDetailId}
         reloadOrderDetail={fetchData}
       />
