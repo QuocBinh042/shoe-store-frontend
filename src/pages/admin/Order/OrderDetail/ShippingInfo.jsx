@@ -4,7 +4,7 @@ import { EditOutlined, EnvironmentOutlined, CarOutlined, NumberOutlined } from '
 
 const { Title, Text } = Typography;
 
-const ShippingInfo = ({ address, method, trackingNumber, onEdit }) => {
+const ShippingInfo = ({ shippingAddress, shippingMethod, trackingNumber, onEdit, editable }) => {
   return (
     <div
       style={{
@@ -26,6 +26,7 @@ const ShippingInfo = ({ address, method, trackingNumber, onEdit }) => {
             icon={<EditOutlined />}
             style={{ color: '#1677ff', fontWeight: 500 }}
             onClick={onEdit}
+            disabled={!editable}
           >
             Edit
           </Button>
@@ -41,7 +42,7 @@ const ShippingInfo = ({ address, method, trackingNumber, onEdit }) => {
             <Text type="secondary">Shipping Address</Text>
           </Row>
           <div style={{ paddingLeft: 24 }}>
-            <Text strong style={{ fontSize: 14 }}>{address}</Text>
+            <Text strong style={{ fontSize: 14 }}>{shippingAddress || '-'}</Text>
           </div>
         </div>
 
@@ -51,23 +52,29 @@ const ShippingInfo = ({ address, method, trackingNumber, onEdit }) => {
             <Text type="secondary">Shipping Method</Text>
           </Row>
           <div style={{ paddingLeft: 24 }}>
-            <Tag color="blue" style={{ fontSize: 13, padding: '2px 12px', borderRadius: 16 }}>
-              {method}
-            </Tag>
+            {shippingMethod ? (
+              <Tag color="blue" style={{ fontSize: 13, padding: '2px 12px', borderRadius: 16 }}>
+                {shippingMethod}                
+              </Tag>
+            ) : (
+              <Text type="secondary">-</Text>
+            )}
           </div>
         </div>
 
-        {trackingNumber && (
-          <div>
-            <Row align="middle" style={{ marginBottom: 6 }}>
-              <NumberOutlined style={{ color: '#8c8c8c', marginRight: 8 }} />
-              <Text type="secondary">Tracking Number</Text>
-            </Row>
-            <div style={{ paddingLeft: 24 }}>
+        <div>
+          <Row align="middle" style={{ marginBottom: 6 }}>
+            <NumberOutlined style={{ color: '#8c8c8c', marginRight: 8 }} />
+            <Text type="secondary">Tracking Number</Text>
+          </Row>
+          <div style={{ paddingLeft: 24 }}>
+            {trackingNumber ? (
               <Text strong copyable style={{ fontSize: 14 }}>{trackingNumber}</Text>
-            </div>
+            ) : (
+              <Text type="secondary">-</Text>
+            )}
           </div>
-        )}
+        </div>
       </Space>
     </div>
   );

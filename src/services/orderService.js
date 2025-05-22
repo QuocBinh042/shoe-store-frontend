@@ -194,3 +194,14 @@ export const addOrderStatusHistory = async (orderStatusHistory) => {
     const data = await postData(`orders/history`, orderStatusHistory);
     return data;
 };
+
+export const updateOrderUser = async (id, userDTO) => {
+    const data = await putData(`orders/${id}/user`, userDTO);
+    return data;
+};
+
+
+export const updateOrderShipping = async (id, shippingDTO) => {
+    const data = await putData(`orders/${id}/shipping`, shippingDTO);
+    return data;
+};
