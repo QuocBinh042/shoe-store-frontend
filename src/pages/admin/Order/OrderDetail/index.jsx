@@ -9,12 +9,14 @@ import OrderTimeline from './OrderTimeline';
 import { ORDER_STATUSES, ORDER_STATUS_DETAILS, getStatusColor } from '../../../../constants/orderConstant';
 import { SIZE_OPTIONS, COLOR_OPTIONS } from '../../../../constants/productConstant';
 import { currencyFormat } from '../../../../utils/helper';
-import { getOrderDetailByOrder, updateOrderDetail } from '../../../../services/orderDetailService'; // thêm updateOrderDetail
+import { getOrderDetailByOrder, updateOrderDetail } from '../../../../services/orderDetailService';
+// Import API mới:
+import { getOrderById, updateOrderUser, updateOrderShipping } from '../../../../services/orderService';
 import EditCustomerModal from '../Modals/EditCustomerModal';
 import EditShippingModal from '../Modals/EditShippingModal';
 import EditOrderItemModal from '../Modals/EditOrderItemModal';
-import { getOrderById } from '../../../../services/orderService';
 import useOrderStatus from '../../../../hooks/useOrderStatus';
+import { updateCustomerGroup } from '../../../../services/userService';
 
 const OrderDetail = () => {
   const { id: orderID } = useParams();
@@ -25,13 +27,14 @@ const OrderDetail = () => {
   const [editItemModalOpen, setEditItemModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [order, setOrder] = useState(null);
-  const { updateOrderStatus, loading, error } = useOrderStatus();
+  const { updateOrderStatus, loading } = useOrderStatus();
 
   // Load order + order detail
   const fetchData = async () => {
     try {
       const response = await getOrderDetailByOrder(orderID);
       const orderData = await getOrderById(orderID);
+      console.log('Order data from API:', orderData.data);
       setOrder(orderData.data);
       if (response.statusCode === 200) {
         setOrderDetails(response.data);
@@ -48,7 +51,7 @@ const OrderDetail = () => {
     // eslint-disable-next-line
   }, [orderID]);
 
-  if (!orderDetails.length) return null;
+  if (!orderDetails.length || !order) return null;
 
   const user = order?.user;
   const isPending = order.status === 'PENDING';
@@ -56,7 +59,6 @@ const OrderDetail = () => {
 
   const buildTimeline = (order) => {
     const result = [];
-
     for (let i = 0; i < ORDER_STATUSES.length; i++) {
       const status = ORDER_STATUSES[i];
       const meta = ORDER_STATUS_DETAILS[status] || {};
@@ -65,22 +67,24 @@ const OrderDetail = () => {
         description: meta.description || '',
         time: i === 0 ? order.orderDate : '',
       });
-
       if (status === order.status) {
         break;
       }
     }
-
     return result;
   };
+
+  // Calculate subtotal based on current order details
+  const calculatedSubtotal = orderDetails.reduce((sum, item) => {
+    return sum + (item.price || 0) * (item.quantity || 0);
+  }, 0);
 
   // Map lại items để giữ id
   const mappedOrderData = {
     orderNumber: order.code,
     date: order.orderDate,
     status: [{ label: order.status, color: getStatusColor(order.status) }],
-    items: orderDetails.map((item, idx) => (
-      {
+    items: orderDetails.map((item, idx) => ({
       key: idx.toString(),
       orderDetailId: item.orderDetailId,
       productImage: item.productDetails?.image || 'https://dummyimage.com/100x100/cccccc/000000&text=No+Image',
@@ -91,25 +95,26 @@ const OrderDetail = () => {
       total: currencyFormat((item.price || 0) * (item.quantity || 0)),
     })),
     totals: {
-      subtotal: currencyFormat(order.total),
+      subtotal: currencyFormat(calculatedSubtotal),
       feeShip: currencyFormat(order.feeShip),
       discount: currencyFormat(order.voucherDiscount),
-      total: currencyFormat(order.total),
+      total: currencyFormat(calculatedSubtotal + (order.feeShip || 0) - (order.voucherDiscount || 0)),
     },
     customer: {
-      customerAvatar: 'https://via.placeholder.com/150',
+      customerAvatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.name || 'Unknown')}&size=150`,
       customerName: user?.name || '',
       customerId: user?.userID || '',
       email: user?.email || '',
       phone: user?.phoneNumber || '',
     },
     shipping: {
-      address: order.shippingAddress,
-      method: order.feeShip === 0 ? 'Free Shipping' : 'Standard Shipping',
-      trackingNumber: order.code,
+      shippingAddress: order.shippingAddress,
+      shippingMethod: order.shippingMethod,
+      trackingNumber: order.trackingNumber,
     },
     timeline: buildTimeline(order),
   };
+  
 
   const handleBack = () => {
     navigate('/admin/orders');
@@ -128,11 +133,21 @@ const OrderDetail = () => {
         const orderData = await getOrderById(orderID);
         setOrder(orderData.data);
         message.success('Order status updated successfully');
+  
+        if (nextStatus === 'DELIVERED' && orderData.data?.user?.userID) {
+          try {
+            await updateCustomerGroup(orderData.data.user.userID);
+            message.success('Customer group updated successfully');
+          } catch (err) {
+            message.error('Failed to update customer group');
+          }
+        }
       }
     } catch (err) {
       message.error(err.message || 'Failed to update order status');
     }
   };
+  
 
   // Xử lý mở modal edit item, set đúng object và giữ id
   const handleEditItem = (item) => {
@@ -140,7 +155,56 @@ const OrderDetail = () => {
     setEditItemModalOpen(true);
   };
 
-  
+  // Cập nhật customer info - gọi API updateOrderUser
+  const handleUpdateCustomer = async (updated) => {
+    try {
+      const userDTO = {
+        userID: order.user.userID,
+        name: updated.customerName,
+        email: updated.email,
+        phoneNumber: updated.phone,
+      };
+      await updateOrderUser(orderID, userDTO);
+      message.success('Customer info updated successfully');
+      setCustomerModalOpen(false);
+      fetchData();
+    } catch (error) {
+      message.error(error?.response?.data?.message || 'Failed to update customer info');
+    }
+  };
+
+  // Cập nhật shipping info - gọi API updateOrderShipping
+  const handleUpdateShipping = async (newShipping) => {
+    try {
+      const shippingDTO = {
+        shippingAddress: newShipping.shippingAddress,
+        shippingMethod: newShipping.shippingMethod,
+        trackingNumber: newShipping.trackingNumber,
+      };
+      await updateOrderShipping(orderID, shippingDTO);
+      message.success('Shipping info updated successfully');
+      setEditShippingModalOpen(false);
+      fetchData();
+    } catch (error) {
+      message.error(error?.response?.data?.message || 'Failed to update shipping info');
+    }
+  };
+
+  // Xử lý update item (giữ nguyên như trước)
+  const handleUpdateOrderItem = async (updatedItem) => {
+    try {
+      await updateOrderDetail(editingItem.orderDetailId, {
+        color: updatedItem.color,
+        size: updatedItem.size,
+        quantity: updatedItem.qty,
+      });
+      message.success('Order item updated successfully');
+      setEditItemModalOpen(false);
+      await fetchData();
+    } catch (error) {
+      message.error(error?.response?.data?.message || 'Failed to update order item');
+    }
+  };
 
   return (
     <div style={{ background: '#f0f2f5', padding: 8 }}>
@@ -175,6 +239,10 @@ const OrderDetail = () => {
           <Col xs={24} lg={8}>
             <CustomerInfo
               {...mappedOrderData.customer}
+              order={order}
+              orderID={orderID}
+              onOrderUpdated={fetchData}
+              disabled={isDelivered}
               onEdit={() => setCustomerModalOpen(true)}
               editable={isPending && !isDelivered}
             />
@@ -201,12 +269,9 @@ const OrderDetail = () => {
       <EditCustomerModal
         open={isCustomerModalOpen}
         onCancel={() => setCustomerModalOpen(false)}
-        onSubmit={(updated) => {
-          console.log('Updated customer:', updated);
-          setCustomerModalOpen(false);
-        }}
+        onSubmit={handleUpdateCustomer}
         initialValues={{
-          name: mappedOrderData.customer.customerName,
+          customerName: mappedOrderData.customer.customerName,
           email: mappedOrderData.customer.email,
           phone: mappedOrderData.customer.phone,
         }}
@@ -216,17 +281,19 @@ const OrderDetail = () => {
       <EditShippingModal
         open={editShippingModalOpen}
         onCancel={() => setEditShippingModalOpen(false)}
-        onSubmit={(newShipping) => {
-          console.log('Shipping updated:', newShipping);
-          setEditShippingModalOpen(false);
+        onSubmit={handleUpdateShipping}
+        initialValues={{
+          shippingAddress: mappedOrderData.shipping.shippingAddress,
+          shippingMethod: mappedOrderData.shipping.shippingMethod,
+          trackingNumber: mappedOrderData.shipping.trackingNumber
         }}
-        initialValues={mappedOrderData.shipping}
         disabled={isDelivered}
       />
 
       <EditOrderItemModal
         open={editItemModalOpen}
         onCancel={() => setEditItemModalOpen(false)}
+        onSubmit={handleUpdateOrderItem}
         initialValues={editingItem}
         colorOptions={COLOR_OPTIONS.map(opt => opt.value)}
         sizeOptions={SIZE_OPTIONS.map(opt => opt.value)}

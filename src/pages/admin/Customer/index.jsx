@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Table, Row, Col, Input, Button, Tag, message } from 'antd';
-import { DownloadOutlined } from '@ant-design/icons';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { createCustomer, getCustomers, getDeliveredOrdersCount, getTotalAmountByUserId, searchUsers } from '../../../services/userService';
 import { currencyFormat } from '../../../utils/helper';
@@ -23,6 +22,28 @@ const Customer = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const isDetailView = location.pathname.includes('/admin/customers/');
+
+  // Bổ sung thêm thông tin cho từng customer
+  const enhanceCustomers = async (customers) => {
+    return Promise.all(
+      customers.map(async (customer) => {
+        const count = await getDeliveredOrdersCount(customer.userID);
+        const amount = await getTotalAmountByUserId(customer.userID);
+        return {
+          key: customer.userID,
+          customerName: customer.name,
+          email: customer.email,
+          phoneNumber: customer.phoneNumber,
+          status: customer.status,
+          customerGroup: customer.customerGroup,
+          order: count,
+          totalSpent: amount, // Để sort local
+          totalSpentDisplay: currencyFormat(amount), // Hiển thị UI
+          initials: customer.name.split(' ').map(n => n[0]).join(''),
+        };
+      })
+    );
+  };
 
   const loadCustomers = async (page = 1, size = 10) => {
     setLoading(true);
@@ -51,27 +72,8 @@ const Customer = () => {
     if (!location.pathname.includes("/admin/customers/")) {
       loadCustomers(pagination.currentPage, pagination.pageSize);
     }
+    // eslint-disable-next-line
   }, [location.pathname, refresh]);
-
-  const enhanceCustomers = async (customers) => {
-    return Promise.all(
-      customers.map(async (customer) => {
-        const count = await getDeliveredOrdersCount(customer.userID);
-        const amount = await getTotalAmountByUserId(customer.userID);
-        return {
-          key: customer.userID,
-          customerName: customer.name,
-          email: customer.email,
-          phoneNumber: customer.phoneNumber,
-          status: customer.status,
-          customerGroup: customer.customerGroup,
-          order: count,
-          totalSpent: currencyFormat(amount),
-          initials: customer.name.split(' ').map(n => n[0]).join(''),
-        };
-      })
-    );
-  };
 
   const handleSearch = async (page = 1, size = 10) => {
     setLoading(true);
@@ -116,34 +118,44 @@ const Customer = () => {
     }
   };
 
+  // Chỉ đổi phân trang (không truyền sortField, sortOrder)
   const handleTableChange = (paginationInfo) => {
     const { current, pageSize } = paginationInfo;
     setPagination(prev => ({ ...prev, currentPage: current, pageSize }));
-    if (searchKeyword.trim() === '') {
-      loadCustomers(current, pageSize);
-    } else {
-      handleSearch(current, pageSize);
-    }
+    loadCustomers(current, pageSize);
   };
 
+  // Tất cả sort đều local!
   const columns = [
     {
       title: 'CUSTOMER',
       dataIndex: 'customerName',
       key: 'customer',
+      sorter: (a, b) => a.customerName.localeCompare(b.customerName),
       render: (__, record) => (
         <div style={{ display: 'flex', alignItems: 'center', textDecoration: 'none' }}>
           <div>{record.customerName}</div>
         </div>
       ),
     },
-    { title: 'Email', dataIndex: 'email', key: 'email' },
-    { title: 'Phone number', dataIndex: 'phoneNumber', key: 'phoneNumber' },
+    { 
+      title: 'Email', 
+      dataIndex: 'email', 
+      key: 'email',
+      sorter: (a, b) => a.email.localeCompare(b.email)
+    },
+    { 
+      title: 'Phone number', 
+      dataIndex: 'phoneNumber', 
+      key: 'phoneNumber',
+      sorter: (a, b) => a.phoneNumber.localeCompare(b.phoneNumber)
+    },
     {
       title: 'Status',
       dataIndex: 'status',
       align: 'center',
       key: 'status',
+      sorter: (a, b) => a.status.localeCompare(b.status),
       render: (__, record) => (
         <Tag
           color={record.status === 'ACTIVE' ? 'green' : 'red'}
@@ -158,6 +170,7 @@ const Customer = () => {
       dataIndex: 'customerGroup',
       align: 'center',
       key: 'customerGroup',
+      sorter: (a, b) => a.customerGroup.localeCompare(b.customerGroup),
       render: (__, record) => {
         let color, fontWeight;
         switch (record.customerGroup) {
@@ -184,13 +197,20 @@ const Customer = () => {
         );
       },
     },
-    { title: 'ORDER', dataIndex: 'order', key: 'order' },
+    { 
+      title: 'ORDER', 
+      dataIndex: 'order', 
+      key: 'order',
+      sorter: (a, b) => a.order - b.order, // Local sort
+    },
     {
       title: 'TOTAL SPENT',
       dataIndex: 'totalSpent',
       key: 'totalSpent',
+      sorter: (a, b) => a.totalSpent - b.totalSpent, // Local sort
+      defaultSortOrder: 'descend',
       render: (__, record) => (
-        <div style={{ fontWeight: 'bold', color: 'red' }}>{record.totalSpent}</div>
+        <div style={{ fontWeight: 'bold', color: 'red' }}>{record.totalSpentDisplay}</div>
       ),
     },
   ];
@@ -223,11 +243,6 @@ const Customer = () => {
               style={{ width: '100%' }}
             />
           </Col>
-          {/* <Col>
-            <Button style={{ border: '1px solid #d9d9d9' }} icon={<DownloadOutlined />}>
-              Export
-            </Button>
-          </Col> */}
           <Col>
             <Button type="primary" onClick={() => { setModalMode('add'); setShowModal(true); }}>
               + Add Customer

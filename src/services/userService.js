@@ -42,3 +42,9 @@ export const updateUserStatus = async (id, status) => {
     const data = await patchData(endpoint, status);
     return data;
 };
+
+export const updateCustomerGroup = async (id) => {
+    const endpoint = `users/${id}/update-customer-group`;
+    const data = await patchData(endpoint);
+    return data;
+};

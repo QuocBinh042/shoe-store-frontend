@@ -1,23 +1,48 @@
-
 import React, { useState } from 'react';
-import { Card, Row, Col, Typography, Divider, Space, Button } from 'antd';
+import { Card, Row, Col, Typography, Divider, Space, Button, message } from 'antd';
 import { EditOutlined, MailOutlined, PhoneOutlined } from '@ant-design/icons';
 import EditCustomerModal from '../Modals/EditCustomerModal';
+import { updateOrderUser } from '../../../../services/orderService'; // Sử dụng hàm mới
 
 const { Title, Text } = Typography;
 
-const CustomerInfo = ({ customerAvatar, customerName, customerId, email, phone }) => {
+const CustomerInfo = ({
+  customerAvatar,
+  customerName,
+  customerId,
+  email,
+  phone,
+  order,           // Truyền thêm object order hiện tại
+  orderID,         // ID của order để gọi API
+  onOrderUpdated,  // Callback để reload lại dữ liệu order ở component cha sau khi update
+  disabled
+}) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleEditSubmit = (updatedValues) => {
-    console.log('Updated customer info:', updatedValues);
-    setIsModalOpen(false);
-    // TODO: call API to update if needed
+  const handleEditSubmit = async (updatedValues) => {
+    try {
+      // Gửi đúng UserDTO cho API mới
+      const userDTO = {
+        userID: customerId,
+        name: updatedValues.customerName,
+        email: updatedValues.email,
+        phoneNumber: updatedValues.phone
+      };
+      await updateOrderUser(orderID, userDTO);
+      message.success('Customer info updated successfully');
+      setIsModalOpen(false);
+
+      // Reload lại order (nếu truyền callback từ cha xuống)
+      if (typeof onOrderUpdated === 'function') {
+        onOrderUpdated();
+      }
+    } catch (error) {
+      message.error(error?.response?.data?.message || 'Failed to update customer info');
+    }
   };
 
   return (
     <Card
-      bordered={false}
       style={{
         borderRadius: 8,
         boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
@@ -34,6 +59,7 @@ const CustomerInfo = ({ customerAvatar, customerName, customerId, email, phone }
             icon={<EditOutlined />}
             style={{ color: '#1677ff', fontWeight: 500 }}
             onClick={() => setIsModalOpen(true)}
+            disabled={disabled}
           >
             Edit
           </Button>
@@ -84,6 +110,7 @@ const CustomerInfo = ({ customerAvatar, customerName, customerId, email, phone }
         onCancel={() => setIsModalOpen(false)}
         onSubmit={handleEditSubmit}
         initialValues={{ customerName, email, phone }}
+        disabled={disabled}
       />
     </Card>
   );
