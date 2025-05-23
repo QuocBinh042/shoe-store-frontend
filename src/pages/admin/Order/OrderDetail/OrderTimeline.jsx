@@ -32,11 +32,30 @@ const OrderTimeline = ({ orderId, currentStatus, onAction }) => {
   const fetchStatusHistory = async () => {
     try {
       const response = await getOrderStatusHistory(orderId);
-      setStatusHistory(response.data || []);
+      const sortedHistory = (response.data || []).sort(
+        (a, b) => {
+          const aIsCanceled = a.status === 'CANCELED';
+          const bIsCanceled = b.status === 'CANCELED';
+
+          if (aIsCanceled && !bIsCanceled) {
+            return 1;
+          }
+          if (!aIsCanceled && bIsCanceled) {
+            return -1;
+          }
+
+          return new Date(b.changedAt) - new Date(a.changedAt);
+        }
+      );
+      setStatusHistory(sortedHistory);
+      
     } catch (error) {
       console.error('Failed to fetch status history:', error);
     }
   };
+  
+  
+  
 
   const handleAction = (nextStatus) => {
     if (nextStatus === 'CANCELED') {

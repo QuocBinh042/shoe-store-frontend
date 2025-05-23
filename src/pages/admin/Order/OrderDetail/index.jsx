@@ -17,6 +17,7 @@ import EditShippingModal from '../Modals/EditShippingModal';
 import EditOrderItemModal from '../Modals/EditOrderItemModal';
 import useOrderStatus from '../../../../hooks/useOrderStatus';
 import { updateCustomerGroup } from '../../../../services/userService';
+import { sendOrderStatusEmail } from '../../../../services/emailService';
 
 const OrderDetail = () => {
   const { id: orderID } = useParams();
@@ -114,7 +115,7 @@ const OrderDetail = () => {
     },
     timeline: buildTimeline(order),
   };
-  
+
 
   const handleBack = () => {
     navigate('/admin/orders');
@@ -122,18 +123,28 @@ const OrderDetail = () => {
 
   const handleOrderAction = async (nextStatus, additionalData = {}) => {
     try {
-      const statusUpdateData = {
+      // Chỉ gửi mail trước khi confirm hoặc cancel
+      if (['CONFIRMED', 'CANCELED'].includes(nextStatus)) {
+        // Gửi mail trước, nếu lỗi sẽ nhảy catch dừng luôn
+        await sendOrderStatusEmail(orderID, nextStatus);
+        message.success('Notification email sent successfully');
+      }
+  
+      // Cập nhật trạng thái đơn hàng
+      const updatedOrder = await updateOrderStatus(orderID, {
         status: nextStatus,
         trackingNumber: additionalData.trackingNumber || null,
         cancelReason: additionalData.cancelReason || null,
-        userId: additionalData.userID || null
-      };
-      const updatedOrder = await updateOrderStatus(orderID, statusUpdateData);
+        userId: additionalData.userID || null,
+      });
+  
       if (updatedOrder) {
         const orderData = await getOrderById(orderID);
         setOrder(orderData.data);
+  
         message.success('Order status updated successfully');
   
+        // Nếu đơn đã giao hàng thì update customer group
         if (nextStatus === 'DELIVERED' && orderData.data?.user?.userID) {
           try {
             await updateCustomerGroup(orderData.data.user.userID);
@@ -144,10 +155,13 @@ const OrderDetail = () => {
         }
       }
     } catch (err) {
-      message.error(err.message || 'Failed to update order status');
+      // Lỗi gửi mail hoặc lỗi update đơn đều sẽ nhảy vào đây
+      message.error(err.message || 'Failed to complete operation');
     }
   };
   
+
+
 
   // Xử lý mở modal edit item, set đúng object và giữ id
   const handleEditItem = (item) => {
