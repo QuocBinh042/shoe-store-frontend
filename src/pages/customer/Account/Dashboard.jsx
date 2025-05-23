@@ -38,8 +38,9 @@ const UserDashboard = () => {
         };
         const fetchOrders = async (userId) => {
             const orders = await fetchOrderByUser(userId);
-            processMonthlyData(orders.filter(order => order.status === "DELIVERED"));
-            setFilteredOrders(orders.filter(order => order.status === "SHIPPED"));
+            
+            processMonthlyData(orders.filter(order => order.orderResponse.status === "DELIVERED"))
+            setFilteredOrders(orders.filter(order => order.orderResponse.status === "SHIPPED"))
         };
         if (user?.userID) {
             fetchData(user.userID);
@@ -133,16 +134,18 @@ const UserDashboard = () => {
         if (modalType === 'edit') setIsEditModalOpen(false);
         else setIsPasswordModalOpen(false);
     };
-
+    
     const columns = [
-        { title: "Order code", dataIndex: "code", key: "code" },
+        { title: "Order code", dataIndex: "orderResponse.code", key: "code" },
         { title: "Order date", dataIndex: "orderDate", key: "orderDate" },
         { title: "Total", dataIndex: "total", key: "total", render: (text) => `${text} đ` },
         { title: "Status", dataIndex: "status", key: "status" },
     ];
+    
     const formattedOrders = filteredOrders.map(order => ({
         ...order,
-        key: order.orderID
+        key: order.orderResponse.orderID
+        
     }));
 
     if (loading) {
@@ -193,9 +196,9 @@ const UserDashboard = () => {
                 </ResponsiveContainer>
             </Card>
 
-            <Card title="Current orders" className="table-card">
+            {/* <Card title="Current orders" className="table-card">
                 <Table dataSource={formattedOrders} columns={columns} pagination={false} />
-            </Card>
+            </Card> */}
 
             <Modal
                 title="Edit User Info"
